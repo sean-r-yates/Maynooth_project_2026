@@ -12,7 +12,7 @@
 #                          (Moderate listeners)
 #                          (Super Listeners)
 #   Notes // this is a file storing the level of listening per artist
-    
+
 #   file name               = StreamingHistory_music_[number 0-N]
 #   variable "endTime"      = time the user stopped listened to a song
 #   variable "artistName"   = name of artist
@@ -43,52 +43,52 @@ library(dplyr)
 library(highcharter)
 
 ui <- fluidPage(
-    theme = shinytheme("flatly"),#theme of the letters
-    navbarPage(
-      "Extra Spotify",#top left of the ui name
-      
-      tabPanel(
-        "Home",
-        sidebarLayout(
-          sidebarPanel(
-            tags$h3("Import Zip:"),
-            fileInput(
-              "zip_",#this is the data variable name
-              label =NULL,#text
-              multiple = F,
-              accept=".zip"
-              )
-          ),#side pannel
-          mainPanel(
-            h2("Import your Spotify data"),
-            h4("it might be called \"my_spotify_data.zip\" ")
-          )#main pannel
-        )#navbar 1, tab panel
-      ),
-      ## TEMP TAB2                                               
-      tabPanel(
-        "artist",
-        sidebarLayout(
-          sidebarPanel(
-            #asks for user input
-            selectInput(
-              "artistpicker",
-              "pick a artist to filter by:",
-              choices=c(),
-              multiple=T
-            ),
-            actionButton("back_to_artists","Back to artists")      
-          ),
-          mainPanel(
-            highchartOutput("artist_track_treemap",height = "650px")%>%withSpinner()
+  theme = shinytheme("flatly"),#theme of the letters
+  navbarPage(
+    "Extra Spotify",#top left of the ui name
+    
+    tabPanel(
+      "Home",
+      sidebarLayout(
+        sidebarPanel(
+          tags$h3("Import Zip:"),
+          fileInput(
+            "zip_",#this is the data variable name
+            label =NULL,#text
+            multiple = F,
+            accept=".zip"
           )
+        ),#side pannel
+        mainPanel(
+          h2("Import your Spotify data"),
+          h4("it might be called \"my_spotify_data.zip\" ")
+        )#main pannel
+      )#navbar 1, tab panel
+    ),
+    ## TEMP TAB2                                               
+    tabPanel(
+      "artist",
+      sidebarLayout(
+        sidebarPanel(
+          #asks for user input
+          selectInput(
+            "artistpicker",
+            "pick a artist to filter by:",
+            choices=c(),
+            multiple=T
+          ),
+          actionButton("back_to_artists","Back to artists")      
+        ),
+        mainPanel(
+          highchartOutput("artist_track_treemap",height = "650px")%>%withSpinner()
         )
-      ),
-      ##TEMP TAB3
-      tabPanel(
-        "Help",
-        "temp2"
       )
+    ),
+    ##TEMP TAB3
+    tabPanel(
+      "Help",
+      "temp2"
+    )
   )
 )
 
@@ -153,8 +153,8 @@ server <- function(input, output, session) {
       group_by(artistName)%>%
       summarise(total_ms = sum(msPlayed), .groups="drop")%>%
       arrange(desc(total_ms))%>%
-        slice_head(n=100)%>%#change for more or less top artists
-        pull(artistName)
+      slice_head(n=100)%>%#change for more or less top artists
+      pull(artistName)
     
     
     #this is returning to the drop down 
@@ -164,13 +164,13 @@ server <- function(input, output, session) {
       choices = sort(unique(top.artists)),
       selected = character(0)
     )
-
+    
     
     current_artist(NULL)#incase user uploads another zip file
   })  
-    ####################################################################
-    ##            dealing with the treemap on page temp2              ##
-    ####################################################################
+  ####################################################################
+  ##            dealing with the treemap on page temp2              ##
+  ####################################################################
   
   #back button
   observeEvent(input$back_to_artists, {
@@ -242,39 +242,39 @@ server <- function(input, output, session) {
         )
       
     } else{
-        # songs for selected artist
-        artist <- current_artist()
-        
-        songs<- df%>%
-          filter(artistName == artist) %>%
-          group_by(trackName) %>%
-          summarise(value = sum(msPlayed), .groups = "drop") %>%
-          mutate(id = trackName, name = trackName)%>%
-          select(id,name,value)
-        
-        highchart()%>%
-          hc_chart(type = "treemap")%>%
-          hc_title(text = paste0("Songs for: ", artist)) %>%
-          hc_add_series(
-            data= list_parse(songs),
-            type="treemap",
-            layoutAlgorithm = "squarified",
-            colorByPoint = T,
-            borderWidth = 0,
-            dataLabels = list(enabled = T) #keeps song labels hidden
-          )%>%
-          hc_tooltip(
-            pointFormatter = JS("
+      # songs for selected artist
+      artist <- current_artist()
+      
+      songs<- df%>%
+        filter(artistName == artist) %>%
+        group_by(trackName) %>%
+        summarise(value = sum(msPlayed), .groups = "drop") %>%
+        mutate(id = trackName, name = trackName)%>%
+        select(id,name,value)
+      
+      highchart()%>%
+        hc_chart(type = "treemap")%>%
+        hc_title(text = paste0("Songs for: ", artist)) %>%
+        hc_add_series(
+          data= list_parse(songs),
+          type="treemap",
+          layoutAlgorithm = "squarified",
+          colorByPoint = T,
+          borderWidth = 0,
+          dataLabels = list(enabled = T) #keeps song labels hidden
+        )%>%
+        hc_tooltip(
+          pointFormatter = JS("
                                 function(){
                                 var mins = this.value/60000;
                                 return '<b>' + this.name + '</b><br/>' +
                                        'Listening time: '+ mins.toFixed(1) + 'minutes';
                                 }
                                 ")
-          )
-        }
+        )
+    }
   })
-
+  
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
