@@ -34,18 +34,17 @@
 
 
 library(shiny)
-library(shinythemes)
-library(shinyWidgets)
 library(shinycssloaders)
-library(utils)
 library(jsonlite)
 library(dplyr)
 library(highcharter)
+library(shinythemes)
 
 ui <- fluidPage(
   theme = shinytheme("flatly"),#theme of the letters
   navbarPage(
     "Extra Spotify",#top left of the ui name
+    id = "main_nav",
     
     tabPanel(
       "Home",
@@ -67,27 +66,37 @@ ui <- fluidPage(
     ),
     ## TEMP TAB2                                               
     tabPanel(
-      "artist",
-      sidebarLayout(
-        sidebarPanel(
-          #asks for user input
-          selectInput(
-            "artistpicker",
-            "pick a artist to filter by:",
-            choices=c(),
-            multiple=T
-          ),
-          actionButton("back_to_artists","Back to artists")      
-        ),
-        mainPanel(
-          highchartOutput("artist_track_treemap",height = "650px")%>%withSpinner()
+      "Analytics",
+
+      tabsetPanel(##add a subsection where the analytics is the father page and the treemap is the son page
+        type= "tabs",
+        tabPanel(
+          "Home",
+          sidebarLayout(
+            sidebarPanel(
+              width=3,
+              #asks for user input
+              selectInput(
+                "artistpicker",
+                "pick a artist to filter by:",
+                choices=NULL,
+                multiple=F
+              ),
+              actionButton("back_to_artists","Clear Artist"),    
+              highchartOutput("artist_track_treemap",height = "600px",width = "100%")%>%withSpinner()
+            ),
+            mainPanel(
+              uiOutput("analytics_home_page")
+              
+            )
+          )
         )
       )
     ),
     ##TEMP TAB3
     tabPanel(
       "Help",
-      "temp2"
+      "me"
     )
   )
 )
@@ -95,6 +104,16 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+  
+  #hides the analytics page until zip is uploaded
+  hideTab(inputId = "main_nav",target = "Analytics")
+  
+  ####################################################################
+  ##                     "public variable"                          ##
+  ####################################################################
+  
+  #the artist chosen
+  artist_choice <- reactiveVal(NULL)
   
   #has full merged streaming history after zip upload
   merged_music_history <- reactiveVal(NULL)
@@ -148,22 +167,43 @@ server <- function(input, output, session) {
     listening.levels.file.dir <- file.path(temp_dir,"Spotify Account Data/Marquee.json")
     listening.level <- fromJSON(listening.levels.file.dir,flatten = TRUE)
     
-    #filtering for 100 top artists
-    top.artists <- merged.music.files %>%
+    ####################################################################
+    ##              once execution after zip upload                   ##
+    ####################################################################
+    
+    #unhides Analytics tab once up has been uploaded
+    observeEvent(input$zip_,{
+      showTab(inputId = "main_nav", target = "Analytics")
+    })
+    
+    #all artists from files 
+    all_artists <- merged.music.files %>%
+      distinct(artistName) %>%
+      arrange(artistName) %>%
+      pull(artistName)
+    
+    #filtering for 50 top artists sorted by listening time
+    top50_artists <- merged.music.files %>%
       group_by(artistName)%>%
       summarise(total_ms = sum(msPlayed), .groups="drop")%>%
       arrange(desc(total_ms))%>%
-      slice_head(n=100)%>%#change for more or less top artists
+      slice_head(n=50)%>%#change for more or less top artists
       pull(artistName)
     
+    #top 50 songs + rest 
+    ordered_top50and_artists <- c(top50_artists,setdiff(all_artists,top50_artists))
     
-    #this is returning to the drop down 
-    updateSelectInput(
+    artist_choice(ordered_top50and_artists)
+    
+    #server side drop down in selection 
+    updateSelectizeInput(
       session,
       "artistpicker",
-      choices = sort(unique(top.artists)),
-      selected = character(0)
+      choices = artist_choice(),
+      selected = character(0),
+      server = T
     )
+    
     
     
     current_artist(NULL)#incase user uploads another zip file
@@ -175,32 +215,57 @@ server <- function(input, output, session) {
   #back button
   observeEvent(input$back_to_artists, {
     current_artist(NULL)
+    
+    updateSelectizeInput(
+      session,
+      "artistpicker",
+      choices = artist_choice(),
+      selected=character(0),
+      server=T
+    )
   })
   
   #capture clicks on artist tile
   observeEvent(input$artist_clicked, {
     req(input$artist_clicked)
     current_artist(input$artist_clicked)
-  })
+    
+    #push clicked artist to picker bar
+    updateSelectizeInput(
+      session,
+      "artistpicker",
+      choices = artist_choice(),
+      selected = input$artist_clicked,
+      server=T
+    )
+  },ignoreInit = T) #this make it so that when app first runs it doesnt fire this chunk
   
+  observeEvent(input$artistpicker, {
+    selected <- input$artistpicker
+    
+    if (is.null(selected)||selected==""){
+      current_artist(NULL)
+    } else{
+      current_artist(selected)
+    }
+  },ignoreInit = T)
   #render treemap
   output$artist_track_treemap <- renderHighchart({
     df <- merged_music_history()
     req(df)
     
-    #top 100 artists
-    top.artists <- df %>%
-      group_by(artistName)%>%
-      summarise(total_ms = sum(msPlayed), .groups="drop")%>%
-      arrange(desc(total_ms))%>%
-      slice_head(n=100)%>%#change for more or less top artists
-      pull(artistName)
-    
-    df <- df %>% filter(artistName %in% top.artists)
-    
     #artists only treemap
     if (is.null(current_artist())){
+      #top 50 artists
+      top.artists <- df %>%
+        group_by(artistName)%>%
+        summarise(total_ms = sum(msPlayed), .groups="drop")%>%
+        arrange(desc(total_ms))%>%
+        slice_head(n=50)%>%#change for more or less top artists
+        pull(artistName)
+      
       artists.only <- df %>%
+        filter(artistName %in% top.artists)%>%
         group_by(artistName)%>%
         summarise(value = sum(msPlayed), .groups="drop")%>%
         mutate(id = artistName, name = artistName)%>%
@@ -209,7 +274,7 @@ server <- function(input, output, session) {
       #making the graph
       highchart()%>%
         hc_chart(type= "treemap") %>%
-        hc_title(text= "Top 100 artists")%>%
+        hc_title(text= "Top 50 artists")%>%
         hc_plotOptions(
           series = list(
             point = list(
@@ -252,9 +317,10 @@ server <- function(input, output, session) {
         mutate(id = trackName, name = trackName)%>%
         select(id,name,value)
       
+      
       highchart()%>%
         hc_chart(type = "treemap")%>%
-        hc_title(text = paste0("Songs for: ", artist)) %>%
+        hc_title(text = paste0("Selected Artist: ", artist)) %>%
         hc_add_series(
           data= list_parse(songs),
           type="treemap",
@@ -278,4 +344,3 @@ server <- function(input, output, session) {
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
-
