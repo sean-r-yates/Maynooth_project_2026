@@ -74,7 +74,7 @@ ui <- fluidPage(
           "Home",
           sidebarLayout(
             sidebarPanel(
-              width=3,
+              width=15,    ## changed the width from 3 to something bigger as the treemap looked small
               #asks for user input
               selectInput(
                 "artistpicker",
@@ -82,7 +82,7 @@ ui <- fluidPage(
                 choices=NULL,
                 multiple=F
               ),
-              actionButton("back_to_artists","Clear Artist"),    
+             actionButton("back_to_artists","Clear Artist"), 
               highchartOutput("artist_track_treemap",height = "600px",width = "100%")%>%withSpinner()
             ),
             mainPanel(
@@ -97,10 +97,18 @@ ui <- fluidPage(
     tabPanel(
       "Help",
       "me"
+    ),
+    ##TEMP TAB4
+    tabPanel(
+      "About", "more on this later"
+      
+        )
+  
+       
     )
   )
-)
 
+   
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
