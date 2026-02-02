@@ -1,0 +1,62 @@
+for all latenight / morning related notes use 1 system. classification(moring / night/ mixed) ratio( % night vs day)
+
+default : 
+	- days with most unique artists
+	- total hours listened 
+	- total plays 
+	- total unique songs
+	- total unique artists
+	- day with most hours listened 
+	- average listening time per day
+	- binge day ( day with unusually high listening compared to avg)
+	- days listened vs days inactive
+	- listening heatmap y weekdays x (in side heatmap 12 cubes of two hours) 
+	- longest listening streak
+	- longest break without listening
+	- morning vs night listener ratio 
+	- average songs per session 
+	- session length avg
+	- first listen of account 
+	- 
+
+artist selected : 
+	- total listen f artist
+	- percentage of your total listening
+	- number of songs listened 
+	- days listened 
+	- peak listening period 
+	- most listened month
+	- longest streak of listening
+	- gaps between listens 
+	- comeback moments
+	- most listened to song by artist(hours)
+	- least listened to song by artist
+	- time of day you listen to them most 
+	- days of week preference
+	- latenight vs daytime ratio
+	- artist rank among all artists
+	- earliest/latest listen of specific artist
+	- most repeated song of artist (number count)
+	- songs rediscovered after long gaps 
+	- songs fully listened to most often
+	- songs listened to by time listened
+	- songs listened to across most days 
+	- songs peaked then disappeared 
+	-
+
+song selected : 
+	- total hours of specific song
+	- total listens
+	- percentage of total listening  
+	- specific songs continueousness(amount of days that were continuous)
+	- earliest/latest listen of the song
+	- most replies in a single day
+	- average listens per day
+	- most common hour listened
+	- most common weekday
+	- late night frequency 
+	- time of day heat map
+	- graph of discovery ->peak->decline graph
+	- peak day
+	- peak month
+	- 
