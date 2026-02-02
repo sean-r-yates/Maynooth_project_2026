@@ -82,10 +82,6 @@ ui <- fluidPage(
             multiple = F,
             accept=".zip"
           ),
-          
-          #submit button
-          #submitButton(text = "Submit", icon = "", width = 250),
-          
         ),#side pannel
         mainPanel(
           h2("Import your Spotify data"),
@@ -156,8 +152,9 @@ ui <- fluidPage(
     ),
     ##TEMP TAB3
     tabPanel(
-      "Help",
-      "me"
+      "Help"
+      
+      
     ),
     
     ##TEMP TAB4
@@ -166,7 +163,7 @@ ui <- fluidPage(
       "About", "more on this later"
       
     ),
-    nav_spacer(),nav_spacer()
+    
     
   )
 )
