@@ -41,6 +41,7 @@ library(jsonlite)
 library(dplyr)
 library(highcharter)
 library(tidyr)
+library(bslib)
 
 ui <- fluidPage(
   useShinyjs(),#added html for main 
@@ -80,13 +81,18 @@ ui <- fluidPage(
             label =NULL,#text
             multiple = F,
             accept=".zip"
-          )
+          ),
+          
+          #submit button
+          #submitButton(text = "Submit", icon = "", width = 250),
+          
         ),#side pannel
         mainPanel(
           h2("Import your Spotify data"),
           h4("it might be called \"my_spotify_data.zip\" ")
         )#main pannel
       )#navbar 1, tab panel
+      
     ),
     ## TEMP TAB2                                               
     tabPanel(
@@ -159,8 +165,8 @@ ui <- fluidPage(
     tabPanel(
       "About", "more on this later"
       
-    )
-    
+    ),
+    nav_spacer(),nav_spacer()
     
   )
 )
