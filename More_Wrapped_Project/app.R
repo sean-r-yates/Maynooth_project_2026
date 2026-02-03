@@ -152,22 +152,74 @@ ui <- fluidPage(
       )
     ),
     ##TEMP TAB3
+    #tabPanel(
+     # "Help"
+      
+      
+    #),
     tabPanel(
-      "Help"
+      "Help", navset_tab(
+        nav_panel(title = "Download Zip File", p(""), 
+                  #gives info on how to download the zip file 
+                  tags$h1("How to Get Your Spotify Data zip file:"),tags$br(), 
+                  tags$h3("First you need to request data to do that go to the Spotify Privacy page and log in.
+        Select Extended streaming history and request the data.
+        You will receive a confirmation email instantly; you must click the link in that email to start the request.
+        It takes up to 30 days for Spotify to gather and send your data, it also may arrive sooner.
+Once you receive the second email, click the download link to save the .zip file to your computer or phone.")),
+        #gives info on how to use the app
+        nav_panel(title = "How to Use", p(""),
+                  tags$h1("Now that you have your zip file, lets start!"),tags$br(), 
+                  tags$h3("Upload your zip file, after which you unlock the analytics tab and explore your listening insights"),
+                  tags$h6("Important: Remember you can only upload zip files, other type of files will not be accepted")),
+        
+        #gives a brief info on the analytics tab
+        nav_panel(title = "Analytics Tab", p(""),
+                  tags$h1("Visual and Interactive overview of what you Love to Listen"),tags$br(),  
+                  tags$h2("Pick an artist to filter by:"),
+                  tags$h4("Here you can pick an artist of your choosing -  you only select one artist at a time"),
+                  tags$h4("The artists in the drop-down list are sorted from most to least listened to."),
+                  tags$h4("You can also pick artists from the TreeMap"),tags$br(), tags$br(),
+                  #overview of treemaps   
+                  tags$h2("TreeMap"),
+                  tags$h4("Shows the artists/songs that dominate your listening"),
+                  tags$h4("(1)When no artist is picked/default: shows the overall treemap"),
+                  tags$h4("(2)When an artist is picked: treemap of the artist picked"),
+                  tags$h4("(3)When a song is selected: detailed block of the song picked"),
+                  tags$h4("Overall:larger treemap blocks = more plays."),
+                  tags$br(), tags$br(),
+                  #overview of gauge charts     
+                  tags$h2("Gauge Charts"), 
+                  tags$h4("The gauge shows overall listening activity - higher values indicate more listening.."),
+                  tags$h4("It displays three things: (1)totals, (2)percenatges,(3) rankings"),
+                  tags$h4("The numbers change based on artist or song selection."),
+                  tags$br(), tags$br(),
+                  #overview of line graphs        
+                  tags$h2("Line Graph"), 
+                  tags$h4("Listening trends over time - rising lines means increased listening.)"),
+                  tags$h4("The line graph change based on aritst or song selection."),tags$br(), tags$br(),
+                  #overview of heatmaps        
+                  tags$h2("HeatMap"), 
+                  tags$h4("Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times)"),
+                  tags$h4("The heatmap changes based on artist or song selection as well"), tags$br(), tags$br(),
+                  #overview of the summary          
+                  tags$h2("Summary"),
+                  tags$h4("There is also a brief summary of the data below the line graph"),
+                  tags$h4("The summary stats also depend on artist or song selection")
+        )
       
-      
-    ),
-    
+    )),
+        #first tab gives info on how to download downlaod the zip file
     ##TEMP TAB4
     
     tabPanel(
       "About", "more on this later"
       
-    ),
+    )
     
     
-  )
-)
+  ))
+
 
 
 # Define server logic required to draw a histogram
