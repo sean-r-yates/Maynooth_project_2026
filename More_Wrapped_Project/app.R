@@ -45,8 +45,14 @@ library(tidyr)
 library(bslib)
 
 ui <- fluidPage(
-  useShinyjs(),#added html for main 
+  useShinyjs(),
+  
+  tags$head(
+    tags$link(rel="icon",type="image/x-icon" ,href="favicon.ico"),
+    tags$link(rel="icon",type="image/png",size="32x32",href="favicon-32x32.png")
+    ),
   tags$style(HTML("
+                  
                   /* main panel in analytics */
                   .main-bg {
                     background: #ECF0F1;
