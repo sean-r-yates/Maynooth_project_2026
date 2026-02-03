@@ -88,8 +88,8 @@ ui <- fluidPage(
                   .navbar-nav li a[data-value='landing']{
                     display: none!important;
                     
-                   /*main panel in help */ 
-                   .help-bg{
+                   /*main panel in help and about*/ 
+                   .haa-bg{
                     background: #ECF0F1
                     }
                   }
@@ -192,66 +192,84 @@ ui <- fluidPage(
     
     tabPanel(
       "Help", navset_tab(
-        nav_panel(title = "Usage of the Zip File", p(""), 
-                  #gives info on how to download the zip file 
-                  tags$h1("How to Get Your Spotify Data zip file:"), 
-                  tags$h3(HTML("First you need to request data to do that go to the Spotify Privacy page and log in.<br>
-        Select Extended streaming history and request the data.<br>
-        You will receive a confirmation email instantly; you must click the link in that email to start the request.<br>
-        It takes up to 30 days for Spotify to gather and send your data, it also may arrive sooner.<br>
-Once you receive the second email, click the download link to save the .zip file to your computer or phone.")), tags$br(),
-                  #gives info on how to use the app
-                  tags$h1("How to Start"),
-                  tags$h3("Upload your zip file to unlock the analytics tab and explore your listening insights."),
-                  tags$h6("Important: Remember you can only upload zip files, other type of files will not be accepted")),
+        nav_panel(title = "Usage of the Zip File", p(""),
+                  #how to download and use the file
+                  HTML("<h2><b>How to get your Spotify zip file</b></h2>
+  <h4>
+      First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
+      Select Extended streaming history and request the data.<br>
+      You will receive a confirmation email instantly; click the link in that email to start the request.<br>
+      It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
+      Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
+      Click on link below to be redirected to the Spotify Privacy Page<br>
+</h4>
+<a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
+<h2><b>How to Start</b></h2>
+<h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
+<h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
+")
+                  
+                  
+        ),
         
-        #gives a brief info on the analytics tab
-        nav_panel(title = "Analytics Tab", p(""),
-                  tags$h1("Visual and Interactive overview of what you Love to Listen"),tags$br(),  
-                  tags$h2("Pick an artist to filter by:"),
-                  tags$h4("Here you can pick an artist of your choosing -  you can only select one artist at a time"),
-                  tags$h4("The artists in the drop-down list are sorted from most to least listened to."),
-                  tags$h4("You can also pick artists from the TreeMap"),tags$br(), tags$br(),
-                  #overview of treemaps   
-                  tags$h2("TreeMap"),
-                  tags$h4("Shows the artists/songs that dominate your listening"),
-                  tags$h4("(1)When no artist is picked/default: shows the overall treemap"),
-                  tags$h4("(2)When an artist is picked: treemap of the artist picked"),
-                  tags$h4("(3)When a song is selected: detailed block of the song picked"),
-                  tags$h4("Overall : larger treemap blocks = more plays."),
-                  tags$br(), tags$br(),
-                  #overview of gauge charts     
-                  tags$h2("Gauge Charts"), 
-                  tags$h4("The gauge shows overall listening activity - higher values indicate more listening."),
-                  tags$h4("It displays three things: (1)totals, (2)percenatges,(3) rankings"),
-                  tags$h4("The numbers change based on artist or song selection."),
-                  tags$br(), tags$br(),
-                  #overview of line graphs        
-                  tags$h2("Line Graph"), 
-                  tags$h4("Listening trends over time - rising lines means increased listening."),
-                  tags$h4("The line graph change based on aritst or song selection."),tags$br(), tags$br(),
-                  #overview of heatmaps        
-                  tags$h2("HeatMap"), 
-                  tags$h4("Visualizes your listening intensity across days and times - darker heatmap areas means peak listening times"),
-                  tags$h4("The heatmap changes based on artist or song selection as well"), tags$br(), tags$br(),
-                  #overview of the summary          
-                  tags$h2("Summary"),
-                  tags$h4("There is also a brief summary of the data below the line graph"),
-                  tags$h4("The summary stats also depend on artist or song selection"),
-                  tags$br(), tags$br()
-        )
+        #gives a brief info on alaytics tab
+        nav_panel(title = "Analytics Tab",p(""),
+                  HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
+  <h2><b>Pick an artist to filter by :</b></h2>
+   <h4>                
+        Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
+        The artists in the drop-down list are sorted from most to least listened to.<br>          
+        You can also pick artists from the TreeMap.<br><br>
+         
+   <h2><b>TreeMaps :</b></h2>
+   <h4>
+       Shows the artists/songs that dominate your listening.<br> 
+       (1)When no artist is picked/default: shows the overall treemap.<br>
+       (2)When an artist is picked: treemap of the artist picked.<br>
+       (3)When a song is selected: detailed block of the song picked.<br>
+       Overall:larger treemap blocks = more plays.<br><br>
+       
+   <h2><b>Gauge Charts : </b></h2>
+   <h4>
+       The gauge shows overall listening activity - higher values indicate more listening.<br>
+       It displays three things: (1)totals, (2)percenatges,(3) rankings<br>
+       The numbers change based on artist or song selection.<br><br>
+       
+   <h2><b>Line Graphs : </b></h2>
+   <h4>   
+       Listening trends over time - rising lines means increased listening.<br>
+       The line graph change based on aritst or song selection.<br><br>
       
-    )),
+   <h2><b>HeatMap : </b></h2>
+   <h4>Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times.<br>
+       The heatmap changes based on artist or song selection as well.<br>
+   
+   <h2><b>Summary : </b></h2>
+   <h4>There is also a brief summary of the data below the line graph.<br>
+       The summary stats also depend on artist or song selection
+   
+                   ")
+                  
+        ))),
         #first tab gives info on how to download downlaod the zip file
     ##TEMP TAB4
     
     tabPanel(
-      "About", "more on this later"
-      
-    )
-    
-    
-  ))
+      "About", 
+      HTML("<h2><b>Authors</b></h2>
+        <h3><b>Sean Ryan Yates<b></h3>
+        <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br>
+        <h3><b>Ankush Janak Katira<b></h3>
+        <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br><br><br>
+        <h2>About the Project : </h2>
+        <h4>Our mission was to compute the analytics of our favourite artists and their songs. With this we can't not only see our favourite 
+        artists but also look at different visualizations to understand the data better. The different visualizations include TreeMaps, 
+        Gauge Charts, Line graphs and HeatMap.<br>
+        In order to know more about the different visualizations you can visit the Analytics tab of the 
+        Help tab.
+        </h4>
+       "))
+  )) 
 
 
 
