@@ -184,11 +184,7 @@ ui <- fluidPage(
       )
     ),
     ##TEMP TAB3
-    #tabPanel(
-     # "Help"
-      
-      
-    #),
+    #temp 
     tabPanel(
       "Help", navset_tab(
         nav_panel(title = "Download Zip File", p(""), 
