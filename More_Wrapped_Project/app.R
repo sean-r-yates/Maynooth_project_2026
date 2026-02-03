@@ -45,8 +45,14 @@ library(tidyr)
 library(bslib)
 
 ui <- fluidPage(
-  useShinyjs(),#added html for main 
+  useShinyjs(),
+  
+  tags$head(
+    tags$link(rel="icon",type="image/x-icon" ,href="light_favicon.ico"),
+    tags$link(rel="icon",type="image/png",size="32x32",href="light_favicon-32x32.png")
+  ),
   tags$style(HTML("
+                  
                   /* main panel in analytics */
                   .main-bg {
                     background: #ECF0F1;
@@ -65,15 +71,40 @@ ui <- fluidPage(
                     padding: 10px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.06);
                   } 
+                  
+                  .statsight-brand{
+                  font-weight: 700;
+                  letter-spacing: 1px;
+                  font-size: 20px;
+                  color: #FFFFFF !important;
+                  cursor: pointer;
+                  }
+                  
+                  .statsight-brand:hover,
+                  .statsight-brand:focus{
+                    colour: #FFFFFF !important;
+                    text-decoration: none !important;
+                  }
+                  
+                  .navbar-nav li a[data-value='landing']{
+                    display: none!important;
+                  }
+                  
                   ")
   ),
   theme = shinytheme("flatly"),#theme of the letters
   navbarPage(
-    "Extra Spotify",#top left of the ui name
+    title = tags$a(
+      "StatSight.fm",#top left of the ui name
+      class="statsight-brand",
+      href="#",
+      onclick="Shiny.setInputValue('home_click',Date.now(),{priority: 'event'});return false;"
+    ),
     id = "main_nav",
     
     tabPanel(
-      "Home",
+      "Landing_page",
+      value="landing",
       sidebarLayout(
         sidebarPanel(
           tags$h3("Import Zip:"),
@@ -94,6 +125,7 @@ ui <- fluidPage(
     ## TEMP TAB2                                               
     tabPanel(
       "Analytics",
+      value="analytics",
       
       tabsetPanel(##add a subsection where the analytics is the father page and the treemap is the son page
         type= "tabs",
@@ -226,7 +258,11 @@ Once you receive the second email, click the download link to save the .zip file
 server <- function(input, output, session) {
   
   #hides the analytics page until zip is uploaded
-  hideTab(inputId = "main_nav",target = "Analytics")
+  hideTab(inputId = "main_nav",target = "analytics")
+  observeEvent(input$home_click,{
+    updateNavbarPage(session,"main_nav",select="landing")
+  }, ignoreInit = T)
+  
   
   ####################################################################
   ##                     "public variable"                          ##
@@ -248,6 +284,8 @@ server <- function(input, output, session) {
   ####################################################################
   ##            Unloading the zip file into usable data            ##
   ####################################################################
+  
+  
   
   observeEvent(input$zip_,{
     
@@ -293,8 +331,9 @@ server <- function(input, output, session) {
     
     
     #unhides Analytics tab once up has been uploaded
-    showTab(inputId = "main_nav", target = "Analytics")
+    showTab(inputId = "main_nav", target = "analytics")
     
+    updateNavbarPage(session, "main_nav", selected = "analytics")
     
     ####################################################################
     ##              once execution after zip upload                   ##
