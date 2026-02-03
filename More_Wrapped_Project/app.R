@@ -41,6 +41,7 @@ library(dplyr)
 library(highcharter)
 library(tidyr)
 library(bslib)
+library(htmltools)
 
 ui <- fluidPage(
   useShinyjs(),
@@ -86,6 +87,11 @@ ui <- fluidPage(
                   
                   .navbar-nav li a[data-value='landing']{
                     display: none!important;
+                    
+                   /*main panel in help */ 
+                   .help-bg{
+                    background: #ECF0F1
+                    }
                   }
                   
                   ")
@@ -183,6 +189,7 @@ ui <- fluidPage(
     ),
     ##TEMP TAB3
     #temp 
+    
     tabPanel(
       "Help", navset_tab(
         nav_panel(title = "Usage of the Zip File", p(""), 
