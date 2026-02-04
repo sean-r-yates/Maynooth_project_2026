@@ -191,8 +191,18 @@ ui <- fluidPage(
     #temp 
     
     tabPanel(
-      "Help", navset_tab(
+      "Help", 
+      navset_tab(
         nav_panel(title = "Usage of the Zip File", p(""),
+                  
+                  tags$head(
+                    tags$style(HTML("
+      body {
+        background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
+        
+      }
+    "))
+                  ),
                   #how to download and use the file
                   HTML("<h2><b>How to get your Spotify zip file</b></h2>
   <h4>
@@ -214,6 +224,14 @@ ui <- fluidPage(
         
         #gives a brief info on alaytics tab
         nav_panel(title = "Analytics Tab",p(""),
+                  tags$head(
+                    tags$style(HTML("
+      body {
+        background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
+        
+      }
+    "))
+                  ),
                   HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
   <h2><b>Pick an artist to filter by :</b></h2>
    <h4>                
@@ -256,14 +274,22 @@ ui <- fluidPage(
     
     tabPanel(
       "About", 
+      tags$head(
+        tags$style(HTML("
+      body {
+        background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
+        
+      }
+    "))
+      ),
       HTML("<h2><b>Authors</b></h2>
         <h3><b>Sean Ryan Yates<b></h3>
         <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br>
         <h3><b>Ankush Janak Katira<b></h3>
         <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br><br><br>
         <h2>About the Project : </h2>
-        <h4>Our mission was to compute the analytics of our favourite artists and their songs. With this we can't not only see our favourite 
-        artists but also look at different visualizations to understand the data better. The different visualizations include TreeMaps, 
+        <h4>Our mission was to compute the analytics of our favourite artists and their songs. <br>With this we can't not only see our favourite 
+        artists and their songs but also look at different visualizations to understand the data better. The different visualizations include TreeMaps, 
         Gauge Charts, Line graphs and HeatMap.<br>
         In order to know more about the different visualizations you can visit the Analytics tab of the 
         Help tab.
