@@ -51,13 +51,18 @@ ui <- fluidPage(
     tags$link(rel="icon",type="image/png",size="32x32",href="light_favicon-32x32.png")
   ),
   tags$style(HTML("
+                  .navbar .container-fluid,
+                  .navbar .container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    }
                   
                   /* main panel in analytics */
                   .main-bg {
                     background: #ECF0F1;
                     padding: 12px;
                     border-radius: 10px;
-                  }
+                    }
                 
                   .gap-col { 
                     padding-left: 10px !important; 
@@ -69,14 +74,14 @@ ui <- fluidPage(
                     border-radius: 10px;
                     padding: 10px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-                  } 
+                    } 
                   
                   .statsight-brand{
-                  font-weight: 700;
-                  letter-spacing: 1px;
-                  font-size: 20px;
-                  color: #FFFFFF !important;
-                  cursor: pointer;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    font-size: 20px;
+                    color: #FFFFFF !important;
+                    cursor: pointer;
                   }
                   
                   .statsight-brand:hover,
@@ -87,13 +92,34 @@ ui <- fluidPage(
                   
                   .navbar-nav li a[data-value='landing']{
                     display: none!important;
+                  }
+                  /* drill buttons */
+                  .drill-wrap {margin-bottom: 10px;}
+                  .drill-title{font-weight: 700; margin-bottom: 6px;}
                     
-                   /*main panel in help and about*/ 
-                   .haa-bg{
-                    background: #ECF0F1
-                    }
+                  .drill-row{
+                    display: flex;
+                    gap: 6px
                   }
                   
+                  .drill-btn{
+                    flex: 1;
+                    width:100%;
+                    margin-bottom:0;
+                    background: #d6dbe0;
+                    border: 1px solid #c7cdd3;
+                    color: #2c3e50;
+                  }  
+                  .drill-btn.is-active{
+                    background: #2c7be5;
+                    border-color: #2c7be5;
+                    color: #fff;
+                  }
+                  
+                   /*main panel in help and about*/ 
+                  .haa-bg{
+                    background: #ECF0F1
+                  }
                   ")
   ),
   theme = shinytheme("flatly"),#theme of the letters
@@ -117,7 +143,7 @@ ui <- fluidPage(
             label =NULL,#text
             multiple = F,
             accept=".zip"
-          ),
+          )
         ),#side pannel
         mainPanel(
           h2("Import your Spotify data"),
@@ -140,48 +166,52 @@ ui <- fluidPage(
               width=3, ##reverted back as the graph isnt the main focus of the page to give insight
               ## thats for stuff in main
               
-              #asks for user input
-              selectizeInput(
-                "artistpicker",
-                "pick a artist to filter by:",
-                choices=NULL,
-                multiple=F
-              ),
-              actionButton("back_to_artists","Go Back"),    
-              highchartOutput("artist_track_treemap",height = "600px",width = "100%")%>%withSpinner()
-            ),
-            mainPanel(##added div for aesthetic reasons on page
-              div(class="main-bg",
-                  fluidRow(
-                    column(4,class="gap-col",
-                           div(class="chart-card",highchartOutput("graph_1_chart",height = "180px"))
-                    ),
-                    
-                    column(4,class="gap-col",
-                           div(class="chart-card", highchartOutput("graph_2_chart", height = "180px"))
-                    ),
-                    
-                    column(4, class="gap-col",
-                           div(class="chart-card",highchartOutput("graph_3_chart", height = "180px"))
-                    )
-                  ),
-                  tags$hr(),
-                  fluidRow(
-                    column(8, class="gap-col",
-                           div(class="chart-card",highchartOutput("graph_4_plot", height = "380px"))
-                    ),
-                    column(4,class="gap-col",
-                           div(class="chart-card", highchartOutput("graph_5_heatmap", height = "380px"))
-                    )
-                  ),
-                  tags$hr(),
-                  uiOutput("text_area")
-                  
-                  
+              div(
+                class="drill-wrap",
+                div(class="drill-title","Stats about:"),
+                div(
+                  class="drill-row",
+                  actionButton("btn_user","User",class="drill-btn"),
+                  actionButton("btn_artist","Artist",class="drill-btn"),
+                  actionButton("btn_song","Song", class="drill-btn")
+                ),
+                
+                uiOutput("filter_picker_ui")
               )
-              #details on main page
-              
-              
+            ),
+            
+            mainPanel(##added div for aesthetic reasons on page
+              div(
+                class="main-bg",
+                fluidRow(
+                  column(4,class="gap-col",
+                         div(class="chart-card",highchartOutput("graph_1_chart",height = "180px"))
+                  ),
+                  
+                  column(4,class="gap-col",
+                         div(class="chart-card", highchartOutput("graph_2_chart", height = "180px"))
+                  ),
+                  
+                  column(4, class="gap-col",
+                         div(class="chart-card",highchartOutput("graph_3_chart", height = "180px"))
+                  )
+                ),
+                tags$hr(),
+                fluidRow(
+                  column(8, class="gap-col",
+                         div(class="chart-card",highchartOutput("graph_4_plot", height = "380px"))
+                  ),
+                  column(4,class="gap-col",
+                         div(class="chart-card",
+                             uiOutput("heatmap_controls_ui"),
+                             highchartOutput("graph_5_heatmap", height = "380px"))
+                  )
+                ),
+                tags$hr(),
+                uiOutput("text_area")
+                
+                
+              )
             )
           )
         )
@@ -218,7 +248,7 @@ ui <- fluidPage(
                         <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
                         <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
                         ")
-                                          
+                  
                   
         ),
         
@@ -269,7 +299,7 @@ ui <- fluidPage(
                                          ")
                   
         ))),
-        #first tab gives info on how to download downlaod the zip file
+    #first tab gives info on how to download downlaod the zip file
     ##TEMP TAB4
     
     tabPanel(
@@ -284,9 +314,20 @@ ui <- fluidPage(
       ),
       HTML("<h2><b>Authors</b></h2>
               <h3><b>Sean Ryan Yates<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br>
-              <h3><b>Ankush Janak Katira<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4><br><br><br>
+              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
+              <h4>Github: 
+                      <a href='https://github.com/sean-r-yates' target='_blank'>
+                        Personal GitHub
+                      </a>
+              </h4>
+              <br><h3><b>Ankush Janak Katira<b></h3>
+              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
+              <h4>Github: 
+                      <a href='https://github.com/AnkushJK3' target='_blank'>
+                        Personal GitHub
+                      </a>
+              </h4>
+              <br><br><br>
               <h2>About the Project : </h2>
               <h4>Our mission was to compute the analytics of our favourite artists and their songs. <br>With this we can't not only see our favourite 
               artists and their songs but also look at different visualizations to understand the data better. The different visualizations include TreeMaps, 
@@ -295,7 +336,7 @@ ui <- fluidPage(
               Help tab.
               </h4>
              "))
-  )) 
+  ) )
 
 
 
@@ -304,15 +345,20 @@ server <- function(input, output, session) {
   
   #hides the analytics page until zip is uploaded
   hideTab(inputId = "main_nav",target = "analytics")
+  
   observeEvent(input$home_click,{
     updateNavbarPage(session,"main_nav",select="landing")
   }, ignoreInit = T)
+  
+  observe({set_active_button(drill_level())})
   
   
   ####################################################################
   ##                     "public variable"                          ##
   ####################################################################
   
+  #
+  drill_level<-reactiveVal("user") # user | artist | song
   #drill state 
   current_artist <- reactiveVal(NULL)
   
@@ -417,67 +463,102 @@ server <- function(input, output, session) {
     #reset drill state on new upload
     current_artist(NULL)
     current_song(NULL)
+    
+    #setting defaults on analytics page
+    drill_level("user")
+    set_active_button("user")
+    
   })  
+  
+  set_active_button <- function(level){
+    runjs(sprintf("
+                  $('#btn_user').removeClass('is-active');
+                  $('#btn_artist').removeClass('is-active');
+                  $('#btn_song').removeClass('is-active');
+                  $('#btn_%s').addClass('is-active');
+                  ", level))
+  }
+  
+  
   ####################################################################
   ##              controls and drilling state updates               ##
   ####################################################################
+  
+  top_artist<-reactive({
+    df<-base_df()
+    req(df)
+    df%>%
+      group_by(artistName) %>%
+      summarise(v=sum(hoursPlayed), .groups="drop") %>%
+      arrange(desc(v)) %>%
+      slice_head(n=1) %>%
+      pull(artistName)
+  })
+  
+  top_song_overall <- reactive({
+    df <- base_df()
+    req(df)
+    df %>%
+      group_by(artistName,trackName) %>%
+      summarise(v =  sum(hoursPlayed), .groups="drop")%>%
+      arrange(desc(v)) %>%
+      slice_head(n=1)
+  })
+  
+  
+  top_song_for_artist <- reactive({
+    df <- base_df()
+    req(df)
+    req(current_artist())
+    df%>%
+      filter(artistName == current_artist()) %>%
+      group_by(trackName) %>%
+      summarise(v = sum(hoursPlayed), .groups="drop") %>%
+      arrange(desc(v)) %>%
+      slice_head(n=1) %>%
+      pull(trackName)
+  })
+  
+  artist_for_current_song <- reactive({
+    df<- base_df()
+    req(df)
+    req(current_song())
+    df %>%
+      filter(trackName==current_song()) %>%
+      group_by(artistName) %>%
+      summarise(v=sum(hoursPlayed), .groups="drop") %>%
+      arrange(desc(v)) %>%
+      slice_head(n=1) %>%
+      pull(artistName)
+  })
+  
+  
   page_state <- reactive({
     if (!is.null(current_song()))  return("song")
     if (!is.null(current_artist())) return("artist")
     "none"
   })
-  #back button
-  observeEvent(input$back_to_artists, {
-    if(!is.null(current_song())){
-      current_song(NULL)
-    } else{
-      current_artist(NULL)
-      current_song(NULL)
-      
-      updateSelectizeInput(
-        session,
-        "artistpicker",
-        choices = artist_choice(),
-        selected=character(0),
-        server=T
-      )
-    }
-    
-  })
   
-  #capture clicks on artist tile
-  observeEvent(input$artist_clicked, {
-    current_artist(input$artist_clicked)
-    current_song(NULL) #reset song when changing artist
-    
-    #push clicked artist to picker bar
-    updateSelectizeInput(
-      session,
-      "artistpicker",
-      choices = artist_choice(),
-      selected = input$artist_clicked,
-      server=T
-    )
-  },ignoreInit = T) #this make it so that when app first runs it doesnt fire this chunk
-  
-  
-  observeEvent(input$song_clicked,{
-    req(input$song_clicked)
-    current_song(input$song_clicked)
-    
-  },ignoreInit = T)
-  
-  observeEvent(input$artistpicker, {
-    selected <- input$artistpicker
+  observeEvent(input$picker, {
+    selected <- input$picker
     
     if (is.null(selected)||selected==""){
-      current_artist(NULL)
-      current_song(NULL)
-      
-    } else{
       current_artist(selected)
       current_song(NULL)
       
+    } else if(drill_level()=="song") { 
+      current_song(selected)
+      #keep current_artist equal with selected song
+      current_artist({
+        df<- base_df()
+        df%>%
+          filter(trackName == selected) %>%
+          group_by(artistName) %>%
+          summarise(v=sum(hoursPlayed), .groups="drop") %>%
+          arrange(desc(v)) %>%
+          slice_head(n=1) %>%
+          pull(artistName)
+      })
     }
   },ignoreInit = T)
   
@@ -553,6 +634,59 @@ server <- function(input, output, session) {
         innerRadius = "85%"
       )
   }
+  output$heatmap_controls_ui <- renderUI({
+    req(base_df())
+    tagList(
+      selectInput("heatmap_view",NULL, choices = c("Weekly","Monthly"), selected="Weekly"),
+      uiOutput("month_picker_ui")
+    )
+  })
+  
+  output$filter_picker_ui <- renderUI({
+    df<- base_df()
+    req(df)
+    
+    if(drill_level()=="user"){
+      return(NULL) # no dropdown visible on default
+    }
+    
+    if(drill_level()=="artist"){
+      selectizeInput(
+        "picker",
+        "Pick artist to filter by:",
+        choices = artist_choice(),
+        selected = current_artist() %||% "",
+        multiple = F,
+        options = list(placeholder="Seach artists...")
+      )
+    } else{
+      #song dropdown: songs of selected artist first, but whole dataset is searchable
+      req(current_artist())
+      songs_for_artist <- df%>%
+        filter(artistName == current_artist())%>%
+        group_by(trackName)%>%
+        summarise(v=sum(hoursPlayed), .groups="drop")%>%
+        arrange(desc(v)) %>%
+        pull(trackName)
+      
+      all_songs<-df %>%
+        distinct(trackName)%>%
+        pull(trackName)
+      
+      ordered <-c(songs_for_artist,setdiff(all_songs,songs_for_artist))
+      
+      selectizeInput(
+        "picker",
+        "Pick song to filter by:",
+        choices = ordered,
+        selected = current_song() %||% "",
+        multiple = F,
+        options = list(placeholder = "Search songs...")
+      )
+    }
+  })
+  
+  
   
   #getting the date into a useable format
   base_df <- reactive({
@@ -572,31 +706,57 @@ server <- function(input, output, session) {
   filtered_df <- reactive({
     df <- base_df()
     
+    if(drill_level()=="user"){
+      return(df)
+    }
     if(!is.null(current_artist())){
       df<- df%>% filter(artistName == current_artist())
     }
-    if(!is.null(current_song())){
+    if(drill_level()=="song" && !is.null(current_song())){
       df<- df%>% filter(trackName == current_song())
     }
     
     df
   })
   
-  #changing the back button on analytics home page to depend on state
-  observe({
-    state <- page_state()
-    
-    if(state =="none"){
-      disable("back_to_artists")
-      updateActionButton(session, "back_to_artists", label = "Go Back")
-    } else if (state == "artist"){
-      enable("back_to_artists")
-      updateActionButton(session, "back_to_artists", label = "Back to Artists")
+  #buttons 3 on analysis home 
+  observeEvent(input$btn_user,{
+    drill_level("user")
+    current_artist(NULL)
+    current_song(NULL)
+    set_active_button("user")
+  }, ignoreInit = T)
+  
+  observeEvent(input$btn_artist,{
+    if (drill_level()=="song" && !is.null(current_song())){
+      #user clicking artist from song (artist who made the song)
+      current_artist(artist_for_current_song())
+      current_song(NULL)
     } else{
-      enable("back_to_artists")
-      updateActionButton(session, "back_to_artists", label = "Back to Songs")
+      #user clicking artist from default (top 1 artist)
+      current_artist(top_artist())
+      current_song(NULL)
     }
-  })
+    drill_level("artist")
+    set_active_button("artist")
+  }, ignoreInit = T)
+  
+  observeEvent(input$btn_song,{
+    if (drill_level()=="artist"&&!is.null(current_artist())){
+      # user clicks song from artist (top song of that artist)
+      current_song(top_song_for_artist())
+    } else{
+      # user clicks song from default (top song overall)
+      ts<- top_song_overall()
+      if (nrow(ts)>0){
+        current_artist(ts$artistName[[1]]) # keep the artist from top 1 song
+        current_song(ts$trackName[[1]])
+      }
+    }
+    drill_level("song")
+    set_active_button("song")
+  }, ignoreInit = T)
+  
   
   output$analytics_home_page <- renderUI({
     switch(
@@ -704,7 +864,7 @@ server <- function(input, output, session) {
     share <- 100 * hours_in_state / max(1e-9, totals$total_hours_all) 
     
     
-    make_chart("% of total time",share,100,suffix = "%")
+    make_chart("% of total time Listened", share, 100, suffix = "%")
   })
   
   ##chart 3
@@ -733,20 +893,35 @@ server <- function(input, output, session) {
     df_f <- filtered_df()
     req(nrow(df_f)>0)
     
-    daily <- df_f %>%
-      group_by(date) %>%
-      summarise(hours = sum(hoursPlayed), .groups ="drop")%>%
-      arrange(date)
+    in_song <- (drill_level()=="song"&&!is.null(current_song()))
+    
+    if(in_song){
+      daily <- df_f %>%
+        group_by(date)%>%
+        summarise(y= n(), .groups="drop") %>%
+        arrange(date)
+      
+      y_title <- "Plays"
+      series_name <- "Plays"
+    } else{
+      daily <- df_f %>%
+        group_by(date)%>%
+        summarise(y= sum(hoursPlayed), .groups="drop") %>%
+        arrange(date)
+      
+      y_title <- "Hours"
+      series_name <- "Hours"
+    }
     
     
     series<- Map(function(d,h){
       list(datetime_to_timestamp(as.POSIXct(d)),h)
-    },daily$date,daily$hours)
+    },daily$date,daily$y)
     
     
-    title_text<- if (!is.null(current_song())){
-      paste0("Daily hours: ",current_song())
-    }else if (!is.null(current_artist())){
+    title_text<- if (in_song){
+      paste0("Daily plays: ",current_song())
+    }else if (!is.null(current_artist()) && drill_level()=="artist"){
       paste0("Daily hours: ",current_artist())
     }else {
       "Daily hours"
@@ -755,10 +930,10 @@ server <- function(input, output, session) {
     highchart()%>%
       hc_chart(type ="line",zoomType ="x")%>%
       hc_title(text = title_text) %>%
-      hc_xAxis(type="datetime")%>%
-      hc_yAxis(title=list(text="Hours")) %>%
+      hc_xAxis(type ="datetime")%>%
+      hc_yAxis(title =list(text=y_title)) %>%
       hc_add_series(
-        name= "Hours",
+        name= series_name,
         data= series
       )%>%
       hc_plotOptions(
@@ -775,11 +950,131 @@ server <- function(input, output, session) {
   ##                      Heatmap render                            ##
   ####################################################################
   
+  
+  output$month_picker_ui <- renderUI({
+    req(input$heatmap_view)
+    if (input$heatmap_view != "Monthly") return(NULL)
+    
+    df <- base_df()
+    req(df)
+    months <- sort(unique(format(df$date, "%Y-%m")))
+    
+    selectInput(
+      "month_choice", NULL,
+      choices = c("All (mean across months)"="ALL", months),
+      selected = "ALL"
+    )
+  })
+  
   ##chart 5
   output$graph_5_heatmap <- renderHighchart({
     df_f <- filtered_df()
     req(nrow(df_f)>0)
+    req(input$heatmap_view)
     
+    #metric hours normally, plays in song drill level
+    use_plays <- (drill_level() == "song" && !is.null(current_song()))
+    df0<- df_f %>%
+      mutate(
+        metric = if(use_plays) 1 else hoursPlayed
+      )
+    
+    if(input$heatmap_view == "Weekly"){
+      #mean per weekday/hour across all dates
+      df_h <-df0%>%
+        mutate(
+          weekday = format(date,"%a"),
+          hour_label = sprintf("%02d:00", hour)
+        )%>%
+        group_by(date, weekday, hour_label) %>%
+        summarise(v=sum(metric), .groups="drop") %>%
+        group_by(weekday, hour_label) %>%
+        summarise(z= mean(v), .groups = "drop")
+      
+      weekday_levels <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+      hour_levels <- sprintf("%02d:00", 0:23)
+      
+      df_h$weekday <- factor(df_h$weekday, levels= weekday_levels)
+      df_h$hour_label <- factor(df_h$hour_label,levels=hour_levels)
+      
+      heat<- df_h %>%
+        complete(weekday,hour_label, fill=list(z=0))%>%
+        mutate(
+          x = as.integer(hour_label) - 1L,
+          y = as.integer(weekday) - 1L
+        )
+      
+      title_text <- if (use_plays) "Mean listening Weekly" else "Mean listening Weekly"
+      suffix <- if (use_plays) " plays" else " h"
+      
+      return (
+        highchart() %>%
+          hc_chart(type="heatmap") %>%
+          hc_title(text= title_text) %>%
+          hc_xAxis(categories= hour_levels,title=list(text="Time of day")) %>%
+          hc_yAxis(categories= weekday_levels,title=list(text=NULL),reversed=T) %>%
+          hc_add_series(
+            name= if(use_plays) "Mean plays" else "Mean hours",
+            data= Map(function(x,y,z) list(x,y,z), heat$x,heat$y,heat$z),
+            borderWidth=0
+          ) %>%
+          hc_tooltip(
+            formatter = JS(sprintf("
+                                   function(){
+                                      var day = this.series.yAxis.categories[this.point.y];
+                                      var time= this.series.xAxis.categories[this.point.x];
+                                      var val = this.point.value;
+                                      return '<b>' + day + '</b><br/>' + time + ' : <b>' + (val).toFixed(2) + '%s</b>';
+                                   }", suffix))
+          )
+      )
+    } else {
+      # monthly: 
+      # - all: mean per day of month across all months
+      # - specific month : show that months values of day of month 
+      req(input$month_choice)
+      
+      df_m <- df0 %>% mutate(
+        day= as.integer(format(date,"%d")),
+        ym = format(date,"%Y-%m")
+      ) %>%
+        group_by(date,day,ym)%>%
+        summarise(v=sum(metric), .groups="drop")
+      
+      if(input$month_choice != "ALL"){
+        df_m <- df_m %>% filter(ym==input$month_choice)
+      }
+      
+      df_m2 <- df_m %>%
+        group_by(day) %>%
+        summarise(z=mean(V), .groups = "drop") %>%
+        complete(day = 1:31, fill = list(z=0))%>%
+        mutate(x=day-1L, y= 0L)
+      
+      day_levels <- as.character(1:31)
+      suffix <- if(use_plays) " plays" else " h"
+      
+      return (      
+        highchart()%>%
+          hc_chart(type = "heatmap")%>%
+          hc_title(text = "Mean listening Monthly") %>%
+          hc_xAxis(categories = day_levels, title = list(text= "Day of month")) %>%
+          hc_yAxis(categories = c(""), title=list(text=NULL),reversed=T)%>%
+          hc_add_series(
+            name = if (use_plays) "Mean plays" else "Mean hours",
+            data = Map(function(x,y,z) list(x,y,z), df_m2$x, df_m2$y, df_m2$z),
+            borderWidth = 0
+          ) %>%
+          hc_tooltip(
+            formatter = JS(sprintf("
+                                   function(){
+                                      var day = this.series.xAxis.categories[this.point.x];
+                                      var val = this.point.value;
+                                      return '<b>Day ' + day + '</b><br/><b>' + (val).toFixed(2) + '%s</b>';
+                                   }", suffix))
+          )
+      )
+    }
     # 1 hour bins 
     df_h <- df_f %>%
       mutate(
@@ -872,173 +1167,7 @@ server <- function(input, output, session) {
     )
   })
   
-  
-  
-  
-  ####################################################################
-  ##                      Treemap render                            ##
-  ####################################################################
-  
-  #render treemap
-  output$artist_track_treemap <- renderHighchart({
-    df <- merged_music_history()
-    req(df)
-    
-    ####
-    #   Song has been selected
-    ####
-    if(!is.null(current_song())){
-      artist <- current_artist()
-      track <- current_song()
-      
-      song.df<- df%>%
-        filter(artistName == artist, trackName == track)%>%
-        summarise(
-          value = sum(msPlayed),
-          .groups = "drop"
-        )
-      
-      single.song<- data.frame(
-        id= track,
-        name=track,
-        artist=artist,
-        value=song.df$value
-      )
-      
-      return(
-        highchart() %>%
-          hc_chart(type="treemap")%>%
-          hc_title(text = paste0("Selected Song: ", track))%>%
-          hc_add_series(
-            data= list_parse(single.song),
-            type= "treemap",
-            layoutAlgorithm = "squarified",
-            colorByPoint=T,
-            borderWidth=0,
-            dataLabels = list(enabled = T)
-          )%>%
-          hc_tooltip(
-            pointFormatter= JS("
-                               function(){
-                               var mins = this.value / 60000;
-                               return '<b>' + this.name + ' -By '+this.artist+ '</b><br/>'
-                               +'Listening time: '+mins.toFixed(1) + 'minutes';
-                               }
-                               ")
-          )
-      )
-      
-    }
-    ####
-    #   artist has been selected
-    ####
-    if (!is.null(current_artist())){
-      # songs for selected artist
-      #state 2 (artist)showing selected artists's songs
-      artist <- current_artist()
-      
-      songs<- df%>%
-        filter(artistName == artist) %>%
-        group_by(trackName) %>%
-        summarise(value = sum(msPlayed), .groups = "drop") %>%
-        mutate(id = trackName, name = trackName)%>%
-        select(id,name,value)
-      
-      return(
-        highchart()%>%
-          hc_chart(type = "treemap")%>%
-          hc_title(text = paste0("Selected Artist: ", artist)) %>%
-          hc_plotOptions(
-            series = list(
-              point = list(
-                events = list(
-                  click = JS("
-                             function(){
-                             Shiny.setInputValue('song_clicked',this.id,{priority: 'event'});
-                             }
-                             ")
-                )
-              )
-            )
-          )%>%
-          hc_add_series(
-            data= list_parse(songs),
-            type="treemap",
-            layoutAlgorithm = "squarified",
-            colorByPoint = T,
-            borderWidth = 0,
-            dataLabels = list(enabled = T) #keeps song labels hidden
-          )%>%
-          hc_tooltip(
-            pointFormatter = JS("
-                                  function(){
-                                  var mins = this.value/60000;
-                                  return '<b>' + this.name + '</b><br/>' +
-                                         'Listening time: '+ mins.toFixed(1) + 'minutes';
-                                  }
-                                  ")
-          )
-      )
-    }
-    ####
-    #   Nothing has been selected (default)
-    ####
-    #top 50 artists
-    #state 1 (none) showing top 50 artists
-    
-    top.artists <- df %>%
-      group_by(artistName)%>%
-      summarise(total_ms = sum(msPlayed), .groups="drop")%>%
-      arrange(desc(total_ms))%>%
-      slice_head(n=50)%>%#change for more or less top artists
-      pull(artistName)
-    
-    artists.only <- df %>%
-      filter(artistName %in% top.artists)%>%
-      group_by(artistName)%>%
-      summarise(value = sum(msPlayed), .groups="drop")%>%
-      mutate(id = artistName, name = artistName)%>%
-      select(id,name,value)
-    
-    #making the graph
-    
-    highchart()%>%
-      hc_chart(type= "treemap") %>%
-      hc_title(text= "Top 50 artists")%>%
-      hc_plotOptions(
-        series = list(
-          point = list(
-            events = list(
-              click = JS("
-                           function (){
-                           Shiny.setInputValue('artist_clicked', this.name, {priority: 'event'});
-                           }
-                          ")
-            )
-          )
-        )
-      )%>%#adding more details to the graph
-      hc_add_series(
-        data = list_parse(artists.only),
-        type = "treemap",
-        layoutAlgorithm= "squarified",
-        colorByPoint = T, #unique colour per artist
-        borderWidth = 0,
-        dataLabels = list(enabled = T)
-      )%>%
-      hc_tooltip(
-        pointFormatter= JS("
-                             function(){
-                             var mins = this.value/60000;
-                             return '<b>' +this.name+ '</b><br/>'+
-                                    'Listening time: '+ mins.toFixed(1) + 'minutes';
-                             }
-                            ")
-      )
-    
-    
-    
-  })
 }
+
 # Run the application 
 shinyApp(ui = ui, server = server)
