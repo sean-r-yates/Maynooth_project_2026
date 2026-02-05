@@ -172,8 +172,10 @@ ui <- fluidPage(
                 div(
                   class="drill-row",
                   actionButton("btn_user","User",class="drill-btn"),
-                  actionButton("btn_artist","Artist",class="drill-btn"),
-                  actionButton("btn_song","Song", class="drill-btn")
+                  actionButton("btn_artist","Artist",clas="drill-btn"),
+                  actionButton("btn_song","Song", class="drill-btn"),
+                  actionButton("comparing_both","Comparison", class = "drill-btn")
+                  
                 ),
                 
                 uiOutput("filter_picker_ui")
@@ -213,10 +215,12 @@ ui <- fluidPage(
                 
               )
             )
+            
           )
         )
       )
     ),
+    
     ##TEMP TAB3
     #temp 
     
@@ -476,7 +480,11 @@ server <- function(input, output, session) {
                   $('#btn_artist').removeClass('is-active');
                   $('#btn_song').removeClass('is-active');
                   $('#btn_%s').addClass('is-active');
-                  ", level))
+                  ",
+                  #$('#btn_diff_artist').removeClass('is-active');
+                  #$('#btn_diff_songs').rmeoveClass('is-active');
+                  
+                  level))
   }
   
   
@@ -536,6 +544,9 @@ server <- function(input, output, session) {
   page_state <- reactive({
     if (!is.null(current_song()))  return("song")
     if (!is.null(current_artist())) return("artist")
+    
+    ## no comaparison
+   #if (is.null(current_comparison())) return()
     "none"
   })
   
