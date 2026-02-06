@@ -109,8 +109,23 @@ ui <- fluidPage(
                     background: #d6dbe0;
                     border: 1px solid #c7cdd3;
                     color: #2c3e50;
-                  }  
+                  } 
+                   /*created this for comparison tab*/
+                .drill--btn{
+                  flex: 1;
+                  width: 100%;
+                  margin-bottom: 0;
+                  background: #d6dbe0;
+                  border: 1px solid #c7cdd3;
+                  color: #2c3e50;
+                  
                   .drill-btn.is-active{
+                    background: #2c7be5;
+                    border-color: #2c7be5;
+                    color: #fff;
+                  }
+                  /*created this for comparison tab*/
+                  .drill--btn.is-active{
                     background: #2c7be5;
                     border-color: #2c7be5;
                     color: #fff;
@@ -228,7 +243,34 @@ ui <- fluidPage(
               )
             ))),
             nav_panel(
-              "Comparison"
+              "Comparison",
+              sidebarLayout(
+                sidebarPanel(
+                  width = 4,
+                  div(
+                    class="drill-wrap",
+                    div(class="drill-title","Comparing "),
+                    div(
+                      class="drill-row",
+                      
+                      actionButton("btn_-artist","Artists", class = "drill--btn"),
+                      actionButton("btn_-song","Songs", class = "drill--btn")
+                    )
+                    #uiOutput("filter_picker_ui")
+                  )),
+                mainPanel(##added div for aesthetic reasons on page
+                  div(
+                    class="main-bg"),
+                  fluidRow(
+                    column(4,class="gap-col"),
+                    
+                    
+                    column(4,class="gap-col")
+                    
+                  ))
+                
+                
+              )
             )
           
         )
