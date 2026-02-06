@@ -146,8 +146,20 @@ ui <- fluidPage(
           )
         ),#side pannel
         mainPanel(
-          h2("Import your Spotify data"),
-          h4("it might be called \"my_spotify_data.zip\" ")
+          HTML("<h2><b>How to get your Spotify zip file</b></h2>
+                          <h4>
+                              First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
+                              Select Extended streaming history and request the data.<br>
+                              You will receive a confirmation email instantly; click the link in that email to start the request.<br>
+                              It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
+                              Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
+                              Click on link below to be redirected to the Spotify Privacy Page<br>
+                        </h4>
+                        <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
+                        <h2><b>How to Start</b></h2>
+                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
+                        <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
+                        ")
         )#main pannel
       )#navbar 1, tab panel
       
@@ -159,11 +171,13 @@ ui <- fluidPage(
       
       tabsetPanel(##add a subsection where the analytics is the father page and the treemap is the son page
         type= "tabs",
-        tabPanel(
+        navset_tab(
+          nav_panel(
           "Home",
+        
           sidebarLayout(
             sidebarPanel(
-              width=3, ##reverted back as the graph isnt the main focus of the page to give insight
+              width=2, ##reverted back as the graph isnt the main focus of the page to give insight
               ## thats for stuff in main
               
               div(
@@ -174,7 +188,7 @@ ui <- fluidPage(
                   actionButton("btn_user","User",class="drill-btn"),
                   actionButton("btn_artist","Artist",clas="drill-btn"),
                   actionButton("btn_song","Song", class="drill-btn"),
-                  actionButton("comparing_both","Comparison", class = "drill-btn")
+                 #actionButton("comparing_both","Comparison", class = "drill-btn")
                   
                 ),
                 
@@ -214,9 +228,11 @@ ui <- fluidPage(
                 
                 
               )
+            ))),
+            nav_panel(
+              "Comparison"
             )
-            
-          )
+          
         )
       )
     ),
@@ -544,10 +560,6 @@ server <- function(input, output, session) {
   page_state <- reactive({
     if (!is.null(current_song()))  return("song")
     if (!is.null(current_artist())) return("artist")
-    
-    ## no comaparison
-   #if (is.null(current_comparison())) return()
-    "none"
   })
   
   observeEvent(input$picker, {
@@ -720,9 +732,16 @@ server <- function(input, output, session) {
     if(drill_level()=="user"){
       return(df)
     }
-    if(!is.null(current_artist())){
-      df<- df%>% filter(artistName == current_artist())
+    #added this to see if it works
+    if(drill_level() =="artist" && !is.null(current_artist()))
+      {
+       df <- df %>% filter(artistName == current_artist())
     }
+    #added first
+    
+  #  if(!is.null(current_artist())){
+   # df<- df%>% filter(artistName == current_artist())
+    #}
     if(drill_level()=="song" && !is.null(current_song())){
       df<- df%>% filter(trackName == current_song())
     }
