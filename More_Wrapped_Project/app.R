@@ -188,9 +188,7 @@ ui <- fluidPage(
                   actionButton("btn_user","User",class="drill-btn"),
                   actionButton("btn_artist","Artist",clas="drill-btn"),
                   actionButton("btn_song","Song", class="drill-btn"),
-                 #actionButton("comparing_both","Comparison", class = "drill-btn")
-                  
-                ),
+        ),
                 
                 uiOutput("filter_picker_ui")
               )
@@ -697,7 +695,7 @@ server <- function(input, output, session) {
         pull(trackName)
       
       ordered <-c(songs_for_artist,setdiff(all_songs,songs_for_artist))
-      
+    
       selectizeInput(
         "picker",
         "Pick song to filter by:",
@@ -733,15 +731,15 @@ server <- function(input, output, session) {
       return(df)
     }
     #added this to see if it works
-    if(drill_level() =="artist" && !is.null(current_artist()))
-      {
-       df <- df %>% filter(artistName == current_artist())
-    }
+    #if(drill_level() =="artist" && !is.null(current_artist()))
+     # {
+      # df <- df %>% filter(artistName == current_artist())
+    #}
     #added first
     
-  #  if(!is.null(current_artist())){
-   # df<- df%>% filter(artistName == current_artist())
-    #}
+   if(!is.null(current_artist())){
+    df<- df%>% filter(artistName == current_artist())
+    }
     if(drill_level()=="song" && !is.null(current_song())){
       df<- df%>% filter(trackName == current_song())
     }
