@@ -33,16 +33,12 @@
 #   Notes // take inspo from this file as its premium users only and dont actually use data from it
 
 library(shiny)
-library(shinycssloaders)
 library(shinythemes)
 library(shinyjs)
 library(jsonlite)
 library(dplyr)
 library(highcharter)
 library(tidyr)
-library(bslib)
-library(htmltools)
-library(rlang)
 library(DT)
 
 
@@ -89,7 +85,7 @@ ui <- fluidPage(
                   
                   .statsight-brand:hover,
                   .statsight-brand:focus{
-                    colour: #FFFFFF !important;
+                    color: #FFFFFF !important;
                     text-decoration: none !important;
                   }
                   
@@ -171,83 +167,74 @@ ui <- fluidPage(
     ## TEMP TAB2                                               
     tabPanel(
       "Analytics",
-      value="analytics",
-      
-      tabsetPanel(##add a subsection where the analytics is the father page and the treemap is the son page
-        type= "tabs",
-        navset_tab(
-          nav_panel(
+      value = "analytics",
+      navset_tab(##add a subsection where the analytics is the father page and the treemap is the son page
+        nav_panel(
           "Home",
-        
           sidebarLayout(
             sidebarPanel(
-              width=3, ##reverted back as the graph isnt the main focus of the page to give insight
+              width = 3,##reverted back as the graph isnt the main focus of the page to give insight
               ## thats for stuff in main
-              
               div(
-                class="drill-wrap",
-                div(class="drill-title","Stats about:"),
+                class = "drill-wrap",
+                div(class = "drill-title", "Stats about:"),
                 div(
-                  class="drill-row",
-                  actionButton("btn_user","User",class="drill-btn"),
-                  actionButton("btn_artist","Artist",class="drill-btn"),
-                  actionButton("btn_song","Song", class="drill-btn")
+                  class = "drill-row",
+                  actionButton("btn_user", "User", class = "drill-btn"),
+                  actionButton("btn_artist", "Artist", class = "drill-btn"),
+                  actionButton("btn_song", "Song", class = "drill-btn")
                 ),
-
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
-                DTOutput("rank_table") 
-                )
+                DTOutput("rank_table")
+              )
             ),
-            
             mainPanel(##added div for aesthetic reasons on page
               div(
-                class="main-bg",
+                class = "main-bg",
                 fluidRow(
-                  column(4,class="gap-col",
-                         div(class="chart-card",highchartOutput("graph_3_chart", height = "180px"))
-                         
+                  column(
+                    4, class = "gap-col",
+                    div(class = "chart-card", highchartOutput("graph_3_chart", height = "180px"))
                   ),
-                  
-                  column(4,class="gap-col",
-                         div(class="chart-card", highchartOutput("graph_2_chart", height = "180px"))
+                  column(
+                    4, class = "gap-col",
+                    div(class = "chart-card", highchartOutput("graph_2_chart", height = "180px"))
                   ),
-                  
-                  column(4, class="gap-col",
-                         div(class="chart-card",uiOutput("text_area"))#,height = "180px"))
+                  column(
+                    4, class = "gap-col",
+                    div(class = "chart-card", uiOutput("text_area"))
                   )
                 ),
                 tags$hr(),
                 fluidRow(
-                  column(8, class="gap-col",
-                         div(class="chart-card",highchartOutput("graph_4_plot", height = "380px"))
+                  column(
+                    8, class = "gap-col",
+                    div(class = "chart-card", highchartOutput("graph_4_plot", height = "380px"))
                   ),
-                  column(4,class="gap-col",
-                         div(class="chart-card",
-                             uiOutput("heatmap_controls_ui"),
-                             highchartOutput("graph_5_heatmap", height = "380px")
-                             )
-                        )
+                  column(
+                    4, class = "gap-col",
+                    div(
+                      class = "chart-card",
+                      uiOutput("heatmap_controls_ui"),
+                      highchartOutput("graph_5_heatmap", height = "380px")
+                    )
+                  )
                 ),
-                tags$hr() 
+                tags$hr()
               )
             )
           )
-          ),
-            nav_panel(
-              "Comparison",
-              sidebarLayout(
-                sidebarPanel("temp"),
-                mainPanel("temp")
-              )
-            )
+        ),
+        nav_panel(
+          "Comparison",
+          sidebarLayout(
+            sidebarPanel("temp"),
+            mainPanel("temp")
+          )
         )
       )
     ),
-    
-
-          
-
     ##TEMP TAB3
     #temp 
     
@@ -435,18 +422,6 @@ server <- function(input, output, session) {
     #saving the full data set
     merged_music_history(merged.music.files)
     
-    #gets the file names for podcast history files
-    podcast.history.file.names <- list.files(
-      temp_dir,
-      pattern="StreamingHistory_podcast_[0-9]+\\.json$",
-      recursive = T, 
-      full.names = T
-    )
-    
-    #merging the podcast files
-    merged.podcast.history <- bind_rows(lapply(podcast.history.file.names,function(i){
-      fromJSON(i,flatten = TRUE)
-    }))
     
     #getting the files for Marquee
     listening.levels.file.dir <- file.path(temp_dir,"Spotify Account Data/Marquee.json")
@@ -793,7 +768,7 @@ server <- function(input, output, session) {
         "Pick artist to filter by:",
         choices = NULL,
         selected = NULL,
-        options = list(placeholder="Seach artists...")
+        options = list(placeholder="Search artists...")
       )
     } else{
       selectizeInput(
@@ -924,14 +899,6 @@ server <- function(input, output, session) {
   }, ignoreInit = T)
   
   
-  output$analytics_home_page <- renderUI({
-    switch(
-      page_state(),
-      none = tags$h3("no specific artist selected"),
-      artist = tags$h3("artist selected"),
-      song = tags$h3("song selected")
-    )
-  })
   
   ####################################################################
   ##            rendering charts1,2,3,4/stat details                ##
@@ -942,35 +909,9 @@ server <- function(input, output, session) {
   overall_totals <- reactive({
     df <- base_df()
     req(df)
-    
-    
-    total.hours.all <- sum(df$hoursPlayed)
-    
-    top.artist.hours <- df %>%
-      group_by(artistName) %>%
-      summarise(h= sum(hoursPlayed), .groups = "drop")%>%
-      summarise(max_ = max(h))%>%
-      pull(max_)
-    
-    top.song.hours <- df%>%
-      group_by(trackName)%>%
-      summarise(h= sum(hoursPlayed), .groups = "drop")%>%
-      summarise(max_ = max(h), .groups = "drop") %>%
-      pull(max_)
-    
-    date.min <-min(df$date)
-    date.max <-max(df$date)
-    total.days.range <- as.integer(date.max-date.min)+1L
-    
     list(
-      total_hours_all = total.hours.all,
-      top_artist_hours = top.artist.hours,
-      top_song_hours  = top.song.hours,
-      date_min        = date.min,
-      date_max        = date.max,
-      total_days_range= total.days.range
+      total_hours_all = sum(df$hoursPlayed)
     )
-    
   })
   
   ##stats for graph3
@@ -999,27 +940,6 @@ server <- function(input, output, session) {
   ###
   # rendering the charts
   ###
-  
-  ##chart 1
-  output$graph_1_chart <- renderHighchart({
-    totals <- overall_totals()
-    df_f <- filtered_df()
-    
-    #value = hours in current state 
-    hours_in_state <- sum(df_f$hoursPlayed)
-    
-    #max value 
-    max_val <- if (is.null(current_artist()) && is.null(current_song())){
-      totals$total_hours_all ## default max == total hours
-    } else if (!is.null(current_song())){
-      totals$top_song_hours  ## song max == top song hours
-    } else {
-      totals$top_artist_hours     ## artists max == top artists hours
-    }
-    
-    make_chart("Total Hours Listened", hours_in_state,max_val,suffix = "h")
-  })
-  
   ##chart 2
   output$graph_2_chart <- renderHighchart({
     totals <- overall_totals()
@@ -1038,9 +958,10 @@ server <- function(input, output, session) {
     rs <- rank_stats()
     
     if (drill_level() == "user") {
-      df_u <- filtered_df()
-      n <- n_distinct(df_u$artistName)
-      return(make_chart("Artists Played", n, n, suffix = ""))
+      n_current <- n_distinct(filtered_df()$artistName)
+      n_all <- n_distinct(base_df()$artistName)
+      
+      return(make_chart("Artists Played", n_current, n_all, suffix = ""))
     }
     if (!is.null(current_song())){
       #song rank 
@@ -1179,7 +1100,7 @@ server <- function(input, output, session) {
             radioButtons(
               "heatmap_agg", label = NULL,
               choices = c("Sum", "Mean"),
-              selected = isolate(input$heatmap_agg %||% "Mean"),
+              selected = isolate(input$heatmap_agg %||% "Sum"),
               inline = T
             )
         )},
