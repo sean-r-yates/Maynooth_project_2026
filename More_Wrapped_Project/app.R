@@ -42,6 +42,9 @@ library(highcharter)
 library(tidyr)
 library(bslib)
 library(htmltools)
+library(rlang)
+library(DT)
+
 
 ui <- fluidPage(
   useShinyjs(),
@@ -176,7 +179,9 @@ ui <- fluidPage(
                   actionButton("btn_song","Song", class="drill-btn")
                 ),
                 
-                uiOutput("filter_picker_ui")
+                uiOutput("filter_picker_ui"),
+                uiOutput("date_range_ui"),
+                DTOutput("rank_table")          
               )
             ),
             
@@ -372,6 +377,7 @@ server <- function(input, output, session) {
   #has full merged streaming history after zip upload
   merged_music_history <- reactiveVal(NULL)
   
+
   
   ####################################################################
   ##            Unloading the zip file into usable data            ##
@@ -452,14 +458,7 @@ server <- function(input, output, session) {
     
     artist_choice(ordered_top50and_artists)
     
-    #server side drop down in selection 
-    updateSelectizeInput(
-      session,
-      "artistpicker",
-      choices = artist_choice(),
-      selected = character(0),
-      server = T
-    )
+    
     
     #reset drill state on new upload
     current_artist(NULL)
@@ -479,7 +478,117 @@ server <- function(input, output, session) {
                   $('#btn_%s').addClass('is-active');
                   ", level))
   }
+  ####################################################################
+  ##                          data table                            ##
+  ####################################################################
   
+  output$date_range_ui <- renderUI({
+    df<-base_df()
+    req(df)
+    
+    min_d <- min(df$date)
+    max_d <- max(df$date)
+    
+    sliderInput(
+      "date_range",
+      label="Date range",
+      min = min_d,
+      max= max_d,
+      value = c(min_d,max_d),
+      timeFormat = "%Y-%m-%d"
+    )
+  })
+  
+  rank_table_df <- reactive({
+    df <- base_df()
+    req(df)
+    
+    #apply date range to table too
+    if (!is.null(input$date_range)){
+      df<- df%>% filter(date>= input$date_range[1],date<=input$date_range[2])
+    }
+    
+    if(drill_level()=="user"){
+      return(df%>%
+               group_by(artistName)%>%
+               summarise(playtime= sum(hoursPlayed), .groups="drop")%>%
+               arrange(desc(playtime))%>%
+               mutate(
+                 rank = row_number(),
+                 artist= artistName,
+                 song=""
+               )%>%
+               select(rank,artist,song,playtime)
+      )
+    }
+    
+    if(drill_level()=="artist"){
+      req(current_artist())
+      return(
+        df%>%
+          filter(artistName == current_artist())%>%
+          group_by(trackName)%>%
+          summarise(playtime = sum(hoursPlayed),.groups = "drop")%>%
+          arrange(desc(playtime))%>%
+          mutate(
+            rank=row_number(),
+            artist = current_artist(),
+            song= trackName
+          )%>%
+          select(rank,artist,song,playtime)
+      )
+    }
+    
+    df %>%
+      group_by(artistName, trackName)%>%
+      summarise(playtime = sum(hoursPlayed), .groups ="drop")%>%
+      arrange(desc(playtime))%>%
+      mutate(rank=row_number(),
+             artist=artistName,
+             song=trackName)%>%
+      select(rank,artist,song,playtime)
+    
+    
+    
+  })
+  
+  
+  output$rank_table<-renderDT({
+    datatable(
+      rank_table_df(),
+      rownames=F,
+      selection = "single",
+      options = list(
+        order = list(list(0,"asc")),
+        pageLength=10,
+        lengthChange=F
+      )
+    )%>%
+      formatRound("playtime",2)
+  })
+  
+  observeEvent(input$rank_table_rows_selected,{
+    i <- input$rank_table_rows_selected
+    if (length(i) == 0) return()
+    
+    row <- rank_table_df()[i, , drop = FALSE]
+    
+    if (drill_level() == "user") {
+      current_artist(row$artist[[1]])
+      current_song(NULL)
+      drill_level("artist")
+      set_active_button("artist")
+      return()
+    }
+    
+    #in artist or song drill
+    if (!is.null(row$song[[1]]) && row$song[[1]] != "") {
+      current_artist(row$artist[[1]])
+      current_song(row$song[[1]])
+      drill_level("song")
+      set_active_button("song")
+    }
+  })
   
   ####################################################################
   ##              controls and drilling state updates               ##
@@ -543,25 +652,29 @@ server <- function(input, output, session) {
   observeEvent(input$picker, {
     selected <- input$picker
     
-    if (is.null(selected)||selected==""){
+    if (is.null(selected)||selected=="") return ()
+    
+    if (drill_level()=="artist"){
       current_artist(selected)
       current_song(NULL)
-      
-    } else if(drill_level()=="song") { 
-      current_song(selected)
-      #keep current_artist equal with selected song
-      current_artist({
-        df<- base_df()
-        df%>%
-          filter(trackName == selected) %>%
-          group_by(artistName) %>%
-          summarise(v=sum(hoursPlayed), .groups="drop") %>%
-          arrange(desc(v)) %>%
-          slice_head(n=1) %>%
-          pull(artistName)
-      })
+      return()
     }
-  },ignoreInit = T)
+    
+    if (drill_level() == "song") {
+      current_song(selected)
+      
+      df <- base_df()
+      a <- df %>%
+        filter(trackName == selected) %>%
+        group_by(artistName) %>%
+        summarise(v = sum(hoursPlayed), .groups = "drop") %>%
+        arrange(desc(v)) %>%
+        slice_head(n = 1) %>%
+        pull(artistName)
+      
+      current_artist(if (length(a) == 0) NULL else a[[1]])
+    }
+  }, ignoreInit = TRUE, ignoreNULL = TRUE)
   
   
   
@@ -569,29 +682,8 @@ server <- function(input, output, session) {
   ##                          Main panel                            ##
   ####################################################################
   
-  output$heatmap_controls_ui<-renderUI({
-    tagList(
-      div(style = "margin-bottom:6px;",
-          radioButtons(
-            "heatmap_view",
-            label= NULL,
-            choices =c("Weekly","Monthly"),
-            selected = "Weekly",
-            inline=T
-          )
-      ),
-      div( style = "margin-bottom:6px;",
-           radioButtons(
-             "heatmap_agg",
-             label=NULL,
-             choices = c("Sum","Mean"),
-             selected = "Mean",
-             inline = T
-           )
-      ),
-      uiOutput("month_picker_ui")
-    )
-  })
+
+  
   
   
   ms.to.hours <- function(ms) ms/1000/60/60
@@ -674,37 +766,56 @@ server <- function(input, output, session) {
       selectizeInput(
         "picker",
         "Pick artist to filter by:",
-        choices = artist_choice(),
-        selected = current_artist() %||% "",
-        multiple = F,
+        choices = NULL,
+        selected = NULL,
         options = list(placeholder="Seach artists...")
       )
     } else{
-      #song dropdown: songs of selected artist first, but whole dataset is searchable
-      req(current_artist())
-      songs_for_artist <- df%>%
-        filter(artistName == current_artist())%>%
-        group_by(trackName)%>%
-        summarise(v=sum(hoursPlayed), .groups="drop")%>%
-        arrange(desc(v)) %>%
-        pull(trackName)
-      
-      all_songs<-df %>%
-        distinct(trackName)%>%
-        pull(trackName)
-      
-      ordered <-c(songs_for_artist,setdiff(all_songs,songs_for_artist))
-      
       selectizeInput(
         "picker",
         "Pick song to filter by:",
-        choices = ordered,
-        selected = current_song() %||% "",
-        multiple = F,
+        choices = NULL,
+        selected = NULL,
         options = list(placeholder = "Search songs...")
       )
     }
   })
+  observeEvent(drill_level(),{
+    df<- base_df()
+    req(df)
+    
+    if (drill_level()=="artist"){
+      updateSelectizeInput(
+        session,"picker",
+        choices = artist_choice(),
+        selected = isolate(current_artist()) %||%"",
+        server = T
+      )
+    }
+    
+    if (drill_level()== "song"){
+      
+      if(!is.null(input$date_range)){
+        df<- df%>%filter(date>=input$date_range[1],date<=input$date_range[2])
+      }
+      
+      ordered <- df%>%
+        group_by(artistName,trackName) %>%
+        summarise(v=sum(hoursPlayed),.groups="drop")%>%
+        arrange(desc(v))%>%
+        pull(trackName)
+      
+      all_songs<- df%>%distinct(trackName) %>% pull(trackName)
+      choices <- c(ordered, setdiff(all_songs, ordered))
+      
+      updateSelectizeInput(
+        session, "picker",
+        choices = choices,
+        selected = isolate(current_song())%||%"",
+        server=T
+      )
+    }
+  }, ignoreInit = T)
   
   
   
@@ -726,6 +837,9 @@ server <- function(input, output, session) {
   filtered_df <- reactive({
     df <- base_df()
     
+    if (!is.null(input$date_range)){
+      df <- df%>% filter(date >= input$date_range[1],date<=input$date_range[2])
+    }
     if(drill_level()=="user"){
       return(df)
     }
@@ -891,29 +1005,36 @@ server <- function(input, output, session) {
   output$graph_3_chart <- renderHighchart({
     rs <- rank_stats()
     
-    if(is.null(current_artist())&& is.null(current_song())){
-      #number of unique artists in data
-      make_chart("Artists Played", rs$n_artists,rs$n_artists,suffix="")
-    }else if (!is.null(current_song())){
+    if (drill_level() == "user") {
+      df_u <- filtered_df()
+      n <- n_distinct(df_u$artistName)
+      return(make_chart("Artists Played", n, n, suffix = ""))
+    }
+    if (!is.null(current_song())){
       #song rank 
       r<- rs$song_rank %>% filter(trackName == current_song())%>%pull(rank)
       r<- ifelse(length(r)==0,NA,r)
-      make_chart("Song Rank",r,nrow(rs$song_rank),suffix= "")
-    }else{
-      #artists rank
-      r<- rs$artist_rank %>% filter(artistName == current_artist())%>%pull(rank)
-      r<- ifelse(length(r)==0,NA,r)
-      make_chart("Artists Rank",r,nrow(rs$artist_rank),suffix= "")
-      
+      return(make_chart("Song Rank",r,nrow(rs$song_rank),suffix= ""))
     }
+    #artists rank
+    r<- rs$artist_rank %>% filter(artistName == current_artist())%>%pull(rank)
+    r<- ifelse(length(r)==0,NA,r)
+    make_chart("Artists Rank",r,nrow(rs$artist_rank),suffix= "")
+      
+    
   })
   
   ##chart 4
   output$graph_4_plot <-renderHighchart({
     df_f <- filtered_df()
     req(nrow(df_f)>0)
+    req(input$heatmap_view)
+    req(input$heatmap_agg)
     
-    in_song <- (drill_level()=="song"&&!is.null(current_song()))
+    view<-input$heatmap_view
+    agg<- input$heatmap_agg
+    
+    use_plays <- (drill_level() == "song" && !is.null(current_song()))
     
     if(in_song){
       daily <- df_f %>%
@@ -923,6 +1044,8 @@ server <- function(input, output, session) {
       
       y_title <- "Plays"
       series_name <- "Plays"
+      unit<- " Plays"
+      decimals <- 0
     } else{
       daily <- df_f %>%
         group_by(date)%>%
@@ -931,6 +1054,8 @@ server <- function(input, output, session) {
       
       y_title <- "Hours"
       series_name <- "Hours"
+      unit<- " Hours"
+      decimals <- 2
     }
     
     
@@ -958,178 +1083,287 @@ server <- function(input, output, session) {
       )%>%
       hc_plotOptions(
         line=list(
-          marker=list(enabled=F),
+          marker=list(enabled=T, radius =4 ),# radius is the size of the points on graph
           lineWidth=3
         )
       )%>%
       hc_tooltip(
-        pointFormat = "<b>{point.y:.2f} hours</b>"
+        formatter = JS(sprintf("
+                              function(){
+                                var d = Highcharts.dateFormat('%%e %%b %%Y', this.x);
+                                var v = this.y;
+                                return '<b>' + d + '</b><br/><b>' + v.toFixed(%d) + '%s</b>';
+                              }", decimals, unit))
       )
   })
   ####################################################################
-  ##                      Heatmap render                            ##
+  ##                      Heatmap stuff                            ##
   ####################################################################
-  
-  
   output$month_picker_ui <- renderUI({
     req(input$heatmap_view)
     if (input$heatmap_view != "Monthly") return(NULL)
     
-    df <- base_df()
-    req(df)
+    df <- filtered_df()
+    req(nrow(df) > 0)
     
-    months <- sort(unique(format(df$date, "%Y-%m")))
+    months <- df %>%
+      mutate(ym = format(date, "%Y-%m")) %>%
+      distinct(ym) %>%
+      arrange(desc(ym)) %>%
+      pull(ym)
     
-    months_lab <- format(as.Date(paste0(months, "-01")),"%b-%Y")
-    
-    month_choices <- setNames(months,months_lab)
     selectInput(
       "month_choice",
-      label = NULL,
-      choices = c("All (across months)" = "ALL", month_choices),
-      selected = "ALL"
+      "Month:",
+      choices = c("ALL", months),
+      selected = if (!is.null(input$month_choice)) input$month_choice else "ALL"
     )
   })
+  
+  
+  
+
+
+  
+  output$heatmap_controls_ui <- renderUI({
+    tagList(
+      div(style="margin-bottom:6px;",
+          radioButtons(
+            "heatmap_view", label = NULL,
+            choices = c("Weekly", "Monthly"),
+            selected = isolate(input$heatmap_view %||% "Weekly"),
+            inline = T
+          )
+      ),
+      div(style="margin-bottom:6px;",
+          radioButtons(
+            "heatmap_agg", label = NULL,
+            choices = c("Sum", "Mean"),
+            selected = isolate(input$heatmap_agg %||% "Mean"),
+            inline = T
+          )
+      ),
+      uiOutput("month_picker_ui")
+    )
+  })
+  
   
   ##chart 5
   output$graph_5_heatmap <- renderHighchart({##not closing correctly
     df_f <- filtered_df()
-    req(nrow(df_f)>0)
+    req(nrow(df_f) > 0)
     req(input$heatmap_view)
     req(input$heatmap_agg)
     
+    view <- input$heatmap_view
+    agg  <- input$heatmap_agg
+
     #metric hours normally, plays in song drill level
     use_plays <- (drill_level() == "song" && !is.null(current_song()))
-    df0<- df_f %>%
-      mutate(
-        metric = if(use_plays) 1 else hoursPlayed
-      )
-    
-    df0<- df_f %>%
+
+    df0 <- df_f %>%
       mutate(
         metric = if (use_plays) 1 else hoursPlayed,
-        weekday = format(date,"%a"),
-        hour_label = sprintf("%02d:00", hour),
+        weekday = factor(format(date, "%a"), levels = c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")),
+        hour_label = factor(sprintf("%02d:00", hour), levels = sprintf("%02d:00", 0:23)),
         ym = format(date, "%Y-%m"),
-        day = as.integer(format(date,"%d"))
+        day = as.integer(format(date, "%d"))
       )
     
-    if(input$heatmap_view == "Weekly"){#mean per weekday/hour across all dates
-      
-      
-      weekday_levels <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-      hour_levels <- sprintf("%02d:00", 0:23)
-      
-      if(input$heatmap_agg == "Mean"){
+    ######################################################
+    ####-----------------------WEEKLY
+    ####################################################
+    
+    if(view == "Weekly"){#mean per weekday/hour across all dates
+      if(agg == "Mean"){
         #mean logic heatmap
-        df_h <-df0%>%
-          group_by(date,weekday, hour_label) %>%
-          summarise(v= sum(metric), .groups = "drop") %>%
-          group_by(weekday, hour_label)%>%
-          summarise(z= mean(v), .groups="drop")
-        title_text<- paste0("Mean listening Weekly")
+        df_h <- df0 %>%
+          group_by(date, weekday, hour_label) %>%
+          summarise(v = sum(metric), .groups = "drop") %>%
+          group_by(weekday, hour_label) %>%
+          summarise(z = mean(v), .groups = "drop")
+        title_text <- "Mean Listening Weekly"
         
       }else{
         #sum logic heatmap
-        df_h <-df0%>%
+        df_h <- df0 %>%
           group_by(weekday, hour_label) %>%
-          summarise(z= sum(metric), .groups = "drop")
-        title_text<- paste0("Sum Listening Weekly")
+          summarise(z = sum(metric), .groups = "drop")
+        title_text <- "Sum Listening Weekly"
         
       }
       
       
-      df_h$weekday <- factor(df_h$weekday, levels= weekday_levels)
-      df_h$hour_label <- factor(df_h$hour_label,levels=hour_levels)
-      
-      heat<- df_h %>%
-        complete(weekday,hour_label, fill=list(z=0))%>%
+
+      heat <- df_h %>%
+        complete(weekday, hour_label, fill = list(z = 0)) %>%
         mutate(
           x = as.integer(hour_label) - 1L,
           y = as.integer(weekday) - 1L
         )
       
-      suffix<- if(use_plays) " plays" else " h"
+      suffix <- if (use_plays) " plays" else " h"
       
       return (
         highchart() %>%
-          hc_chart(type="heatmap") %>%
-          hc_title(text= title_text) %>%
-          hc_xAxis(categories= hour_levels,title=list(text="Time of day")) %>%
-          hc_yAxis(categories= weekday_levels,title=list(text=NULL),reversed=T) %>%
-          hc_colorAxis(
-            stops = list(
+          hc_chart(type = "heatmap") %>%
+          hc_title(text = title_text) %>%
+          hc_xAxis(categories = levels(df0$hour_label), title = list(text = "Time of day")) %>%
+          hc_yAxis(categories = levels(df0$weekday), title = list(text = NULL), reversed = TRUE) %>%
+          hc_colorAxis(stops = list(
               list(0.0, "#FFFFFF"),
               list(0.35, "#4caf50"),
               list(0.7, "#FDD835"),
               list(1.0, "#F44336")
             ))%>%
           hc_add_series(
-            name= if(use_plays) paste(input$heatmap_agg,"plays") else paste(input$heatmap_agg,"hours"),
-            data= Map(function(x,y,z) list(x,y,z), heat$x,heat$y,heat$z),
-            borderWidth=0
+            name = if (use_plays) paste(agg, "plays") else paste(agg, "hours"),
+            data = Map(function(x, y, z) list(x, y, z), heat$x, heat$y, heat$z),
+            borderWidth = 0
           ) %>%
-          hc_tooltip(
-            formatter = JS(sprintf("
-                                   function(){
-                                      var day = this.series.yAxis.categories[this.point.y];
-                                      var time= this.series.xAxis.categories[this.point.x];
-                                      var val = this.point.value;
-                                      return '<b>' + day + '</b><br/>' + time + ' : <b>' + (val).toFixed(2) + '%s</b>';
-                                   }", suffix))
-          )
-      )
+          hc_tooltip(formatter = JS(sprintf("
+                                            function(){
+                                              var day = this.series.yAxis.categories[this.point.y];
+                                              var time = this.series.xAxis.categories[this.point.x];
+                                              var val = this.point.value || 0;
+                                              return '<b>' + day + '</b><br/>' + time + ' : <b>' + val.toFixed(2) + '%s</b>';
+                                            }", suffix)))
+            )
     } 
     # monthly: 
     # - all: mean per day of month across all months
     # - specific month : show that months values of day of month 
-    req(input$month_choice)
+  
     
-    df_m <- df0 %>%
-      group_by(date,ym,day)%>%
-      summarise(v=sum(metric), .groups="drop")
+    ######################################################
+    ####-----------------------Monthly
+    ####################################################
+    #daily total per date
+    m_choice <- if (is.null(input$month_choice) || input$month_choice == "") "ALL" else input$month_choice
     
-    if(input$month_choice != "ALL"){
-      df_m <- df_m %>% filter(ym==input$month_choice)
+    df_daily <- df0 %>%
+      group_by(date) %>%
+      summarise(v = sum(metric), .groups = "drop") %>%
+      mutate(
+        ym = format(date, "%Y-%m"),
+        day = as.integer(format(date, "%d"))
+      )
+   
+    req(nrow(df_daily) > 0)
+    
+    ym_show <- if (m_choice == "ALL") max(df_daily$ym) else m_choice
+    
+    first_date <- as.Date(paste0(ym_show, "-01"))
+    last_date  <- seq(first_date, by = "1 month", length.out = 2)[2] - 1
+    dates_in_month <- seq(first_date, last_date, by = "day")
+    
+    
+    #value per day per current month
+    if (m_choice == "ALL") {
+      by_dom <- df_daily %>%
+        group_by(day) %>%
+        summarise(z = if (agg == "Mean") mean(v) else sum(v), .groups = "drop")
+      
+      month_vals <- tibble(
+        date = dates_in_month,
+        day = as.integer(format(dates_in_month, "%d"))
+      ) %>%
+        left_join(by_dom, by = "day") %>%
+        mutate(z = coalesce(z, 0)) %>%
+        select(date, z)
+      
+      title_text <- paste0(agg, " Listening (Monthly, All Months)")
+      
+    } else {
+      month_vals <- tibble(date = dates_in_month) %>%
+        left_join(df_daily %>% filter(ym == ym_show) %>% select(date, v), by = "date") %>%
+        mutate(z = coalesce(v, 0)) %>%
+        select(date, z)
+      
+      title_text <- paste0(agg, " Listening: ", format(first_date, "%b-%Y"))
     }
     
-    df_m2 <- df_m %>%
-      group_by(day) %>%
-      summarise(z=if(input$heatmap_agg=="Mean") mean(v) else sum(v), .groups = "drop") %>%
-      complete(day = 1:31, fill = list(z=0))%>%
-      mutate(x=day-1L, y= 0L)
     
-    title_text <- if(input$heatmap_agg == "Mean") "Mean listening Monthly" else "Sum Listening heatmap Monthly"
-    day_levels <- as.character(1:31)
-    suffix <- if(use_plays) " plays" else " h"
+    #get day
+    wd_levels <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+    wd_index <- function(d) as.integer(format(d, "%u")) - 1L
     
-    return(
-      highchart()%>%
-        hc_chart(type = "heatmap")%>%
-        hc_title(text = title_text) %>%
-        hc_xAxis(categories = day_levels, title = list(text= "Day of month")) %>%
-        hc_yAxis(categories = c(""), title=list(text=NULL),reversed=T)%>%
-        hc_colorAxis(
-          stops = list(
-            list(0.0, "#FFFFFF"),
-            list(0.35, "#4caf50"),
-            list(0.7, "#FDD835"),
-            list(1.0, "#F44336")
-          ))%>%
-        hc_add_series(
-          name = if (use_plays) paste(input$heatmap_agg,"plays") else paste(input$heatmap_agg,"hours"),
-          data = Map(function(x,y,z) list(x,y,z), df_m2$x, df_m2$y, df_m2$z),
-          borderWidth = 0
-        ) %>%
-        hc_tooltip(
-          formatter = JS(sprintf("
-                                     function(){
-                                        var day = this.series.xAxis.categories[this.point.x];
-                                        var val = this.point.value;
-                                        return '<b>Day ' + day + '</b><br/><b>' + (val).toFixed(2) + '%s</b>';
-                                     }", suffix)))
-    )  
+    #how many blank spots before day 1
+    offset <- wd_index(first_date)
+    n_month <- length(dates_in_month)
     
+    
+  
+    #creating 6x7 grid of 42 cells
+    grid <- tibble(cell = 0:41) %>%
+      mutate(
+        day_index = cell - offset,
+        idx = day_index + 1L,
+        valid = idx >= 1L & idx <= n_month,
+        x = cell %% 7,
+        y = cell %/% 7,
+        date = as.Date(NA)
+      ) %>%
+      mutate(
+        date = replace(date, valid, dates_in_month[idx[valid]]),
+        day_label = if_else(!is.na(date), as.character(as.integer(format(date, "%d"))), "")
+      ) %>%
+      select(-idx, -valid, -day_index) %>%
+      left_join(month_vals, by = "date") %>%
+      mutate(z = coalesce(z, 0))
+    
+
+    #build points with labels and the tool tip
+    pts <- Map(function(x, y, z, day_label, date){
+      list(
+        x = x, y = y, value = z,
+        day_label = day_label,
+        date_str = if (is.na(date)) "" else format(date, "%Y-%m-%d")
+      )
+    }, grid$x, grid$y, grid$z, grid$day_label, grid$date)
+    
+    suffix <- if(use_plays)" plays" else " h"
+    
+    highchart() %>%
+      hc_chart(type = "heatmap") %>%
+      hc_title(text = title_text) %>%
+      hc_xAxis(categories = wd_levels, title = list(text = NULL)) %>%
+      hc_yAxis(categories = rep("", 6), title = list(text = NULL), reversed = T) %>%
+      hc_colorAxis(
+        stops = list(
+          list(0.0, "#FFFFFF"),
+          list(0.35, "#4caf50"),
+          list(0.7, "#FDD835"),
+          list(1.0, "#F44336")
+        ),
+        min = 0
+      ) %>%
+      hc_plotOptions(
+        heatmap = list(
+          borderWidth = 1,
+          borderColor = "#e6e6e6",
+          dataLabels = list(
+            enabled = T,
+            useHTML = T,
+            formatter = JS("
+                          function(){
+                            return '<span style=\"font-size:11px;color:#2c3e50;opacity:0.85\">' +
+                                   (this.point.day_label || '') + '</span>';
+                          }")
+          )
+        )
+      ) %>%
+      hc_add_series(
+        name = if (use_plays) paste(agg, "plays") else paste(agg, "hours"),
+        data = pts
+      ) %>%
+      hc_tooltip(formatter = JS(sprintf("
+                                          function(){
+                                            if(!this.point.date_str) return '';
+                                            var v = this.point.value;
+                                            if (v === null || v === undefined) v = 0;
+                                            return '<b>' + this.point.date_str + '</b><br/><b>' + v.toFixed(2) + '%s</b>';
+                                          }", suffix)))
   })
   
   output$text_area<- renderUI({
@@ -1161,7 +1395,8 @@ server <- function(input, output, session) {
                     as.character(max(df_f$date))))
     )
   })
-  
+
+
 }
 
 # Run the application 
