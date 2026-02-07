@@ -518,7 +518,7 @@ server <- function(input, output, session) {
                  artist= artistName,
                  song=""
                )%>%
-               select(rank,artist,song,playtime)
+               select(rank,artist,playtime)
       )
     }
     
@@ -1023,18 +1023,14 @@ server <- function(input, output, session) {
       
     
   })
+
   
   ##chart 4
   output$graph_4_plot <-renderHighchart({
     df_f <- filtered_df()
     req(nrow(df_f)>0)
-    req(input$heatmap_view)
-    req(input$heatmap_agg)
     
-    view<-input$heatmap_view
-    agg<- input$heatmap_agg
-    
-    use_plays <- (drill_level() == "song" && !is.null(current_song()))
+    in_song <- (drill_level()=="song"&&!is.null(current_song()))
     
     if(in_song){
       daily <- df_f %>%
@@ -1120,12 +1116,23 @@ server <- function(input, output, session) {
     )
   })
   
-  
-  
-
+  observe({
+    if (!is.null(input$heatmap_view) &&
+        input$heatmap_view == "Monthly" &&
+        !is.null(input$month_choice) &&
+        input$month_choice != "ALL") {
+      updateRadioButtons(session, "heatmap_agg", selected = "Sum")
+    }
+  })
 
   
   output$heatmap_controls_ui <- renderUI({
+    show_agg <- T
+    if (!is.null(input$heatmap_view) && input$heatmap_view == "Monthly") {
+      m_choice <- input$month_choice %||% "ALL"
+      show_agg <- identical(m_choice, "ALL")
+    }
+    
     tagList(
       div(style="margin-bottom:6px;",
           radioButtons(
@@ -1135,16 +1142,17 @@ server <- function(input, output, session) {
             inline = T
           )
       ),
-      div(style="margin-bottom:6px;",
-          radioButtons(
-            "heatmap_agg", label = NULL,
-            choices = c("Sum", "Mean"),
-            selected = isolate(input$heatmap_agg %||% "Mean"),
-            inline = T
-          )
-      ),
-      uiOutput("month_picker_ui")
-    )
+      if (show_agg) {
+        div(style="margin-bottom:6px;",
+            radioButtons(
+              "heatmap_agg", label = NULL,
+              choices = c("Sum", "Mean"),
+              selected = isolate(input$heatmap_agg %||% "Mean"),
+              inline = T
+            )
+        )},
+        uiOutput("month_picker_ui")
+      )
   })
   
   
@@ -1248,69 +1256,90 @@ server <- function(input, output, session) {
         ym = format(date, "%Y-%m"),
         day = as.integer(format(date, "%d"))
       )
-   
+    
     req(nrow(df_daily) > 0)
     
-    ym_show <- if (m_choice == "ALL") max(df_daily$ym) else m_choice
+    wd_levels <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
     
-    first_date <- as.Date(paste0(ym_show, "-01"))
-    last_date  <- seq(first_date, by = "1 month", length.out = 2)[2] - 1
-    dates_in_month <- seq(first_date, last_date, by = "day")
-    
-    
-    #value per day per current month
     if (m_choice == "ALL") {
+      # Aggregate across all months by day-of-month (1..31)
       by_dom <- df_daily %>%
         group_by(day) %>%
-        summarise(z = if (agg == "Mean") mean(v) else sum(v), .groups = "drop")
+        summarise(
+          z = if (agg == "Mean") mean(v) else sum(v),
+          .groups = "drop"
+        )
       
-      month_vals <- tibble(
-        date = dates_in_month,
-        day = as.integer(format(dates_in_month, "%d"))
-      ) %>%
+      # force ALL to 31 days
+      dom_tbl <- tibble(day = 1:31) %>%
         left_join(by_dom, by = "day") %>%
-        mutate(z = coalesce(z, 0)) %>%
-        select(date, z)
+        mutate(z = coalesce(z, 0))
       
-      title_text <- paste0(agg, " Listening (Monthly, All Months)")
+      # fixed calendar anchor so day positions are stable (Mon start)
+      first_date <- as.Date("2001-01-01")  # Monday
+      offset <- 0L
+      n_month <- 31L
+      
+      title_text <- paste0("All ",agg, " Listening")
+      
+      grid <- tibble(cell = 0:41) %>%
+        mutate(
+          day_index = cell - offset,
+          idx = day_index + 1L,
+          valid = idx >= 1L & idx <= n_month,
+          x = cell %% 7,
+          y = cell %/% 7,
+          day = if_else(valid, idx, NA_integer_),
+          date = as.Date(NA),
+          day_label = if_else(valid, sprintf("%02d", idx), "")
+        ) %>%
+        left_join(dom_tbl %>% select(day, z), by = "day") %>%
+        mutate(z = coalesce(z, 0))
+      
+      pts <- Map(function(x, y, z, day_label){
+        list(
+          x = x, y = y, value = z,
+          day_label = day_label,
+          date_str = if (day_label == "") "" else paste0("Day ", day_label)
+        )
+      }, grid$x, grid$y, grid$z, grid$day_label)
       
     } else {
+      ym_show <- m_choice
+      first_date <- as.Date(paste0(ym_show, "-01"))
+      last_date  <- seq(first_date, by = "1 month", length.out = 2)[2] - 1
+      dates_in_month <- seq(first_date, last_date, by = "day")
+      
       month_vals <- tibble(date = dates_in_month) %>%
         left_join(df_daily %>% filter(ym == ym_show) %>% select(date, v), by = "date") %>%
         mutate(z = coalesce(v, 0)) %>%
         select(date, z)
       
-      title_text <- paste0(agg, " Listening: ", format(first_date, "%b-%Y"))
+      offset <- as.integer(format(first_date, "%u")) - 1L
+      n_month <- length(dates_in_month)
+      
+      title_text <- paste0("Sum listening: ", format(first_date, "%b-%Y"))
+      
+      
+      grid <- tibble(cell = 0:41) %>%
+        mutate(
+          day_index = cell - offset,
+          idx = day_index + 1L,
+          valid = idx >= 1L & idx <= n_month,
+          x = cell %% 7,
+          y = cell %/% 7,
+          date = as.Date(NA)
+        ) %>%
+        mutate(
+          date = replace(date, valid, dates_in_month[idx[valid]]),
+          day_label = if_else(!is.na(date), sprintf("%02d", as.integer(format(date, "%d"))), "")
+        ) %>%
+        select(-idx, -valid, -day_index) %>%
+        left_join(month_vals, by = "date") %>%
+        mutate(z = coalesce(z, 0))
     }
     
     
-    #get day
-    wd_levels <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-    wd_index <- function(d) as.integer(format(d, "%u")) - 1L
-    
-    #how many blank spots before day 1
-    offset <- wd_index(first_date)
-    n_month <- length(dates_in_month)
-    
-    
-  
-    #creating 6x7 grid of 42 cells
-    grid <- tibble(cell = 0:41) %>%
-      mutate(
-        day_index = cell - offset,
-        idx = day_index + 1L,
-        valid = idx >= 1L & idx <= n_month,
-        x = cell %% 7,
-        y = cell %/% 7,
-        date = as.Date(NA)
-      ) %>%
-      mutate(
-        date = replace(date, valid, dates_in_month[idx[valid]]),
-        day_label = if_else(!is.na(date), as.character(as.integer(format(date, "%d"))), "")
-      ) %>%
-      select(-idx, -valid, -day_index) %>%
-      left_join(month_vals, by = "date") %>%
-      mutate(z = coalesce(z, 0))
     
 
     #build points with labels and the tool tip
@@ -1357,13 +1386,18 @@ server <- function(input, output, session) {
         name = if (use_plays) paste(agg, "plays") else paste(agg, "hours"),
         data = pts
       ) %>%
-      hc_tooltip(formatter = JS(sprintf("
-                                          function(){
-                                            if(!this.point.date_str) return '';
-                                            var v = this.point.value;
-                                            if (v === null || v === undefined) v = 0;
-                                            return '<b>' + this.point.date_str + '</b><br/><b>' + v.toFixed(2) + '%s</b>';
-                                          }", suffix)))
+      hc_tooltip(
+        useHTML = TRUE,
+        formatter = JS(sprintf("
+                                function () {
+                                  var label = this.point.date_str || ('Day ' + (this.point.day_label || ''));
+                                  var v = this.point.value;
+                                  if (v === null || v === undefined) v = 0;
+                                  return '<b>' + label + '</b><br/><b>' + Number(v).toFixed(2) + '%s</b>';
+                                }
+                              ", suffix))
+      )
+    
   })
   
   output$text_area<- renderUI({
