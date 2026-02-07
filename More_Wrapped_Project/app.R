@@ -1375,11 +1375,16 @@ server <- function(input, output, session) {
       )
     
   })
-  #text on screen 
+  
+  ######################################################
+  ####-----------------------text on screen 
+  ####################################################
+
   output$text_area<- renderUI({
     df_all <- base_df()
     df_f <- filtered_df()
     req(nrow(df_all)>0)
+    req(nrow(df_f)>0)
     
     hours_in_state <- sum(df_f$hoursPlayed)
     
@@ -1452,6 +1457,34 @@ server <- function(input, output, session) {
     
     days <- as.integer(d_end-cursor)
     
+    #longest streak 
+    listen_days  <- sort(unique(as.Date(df_f$date)))
+    
+    if(length(listen_days)==0){
+      longest_streak<-0L
+    } else{
+      gaps<-as.integer(diff(listen_days))
+      streak_id<- cumsum(c(1L,ifelse(gaps == 1L,0L,1L)))
+      streak_lengths<-as.integer(table(streak_id))
+      longest_streak<-max(streak_lengths)
+    }
+    
+    #finding most listened to month
+    month_summary <- df_f%>%
+      mutate(month_key = format(date,"%Y-%m"))%>%
+      group_by(month_key)%>%
+      summarise(total_h = sum(hoursPlayed), .groups="drop")%>%
+      arrange(desc(total_h),month_key)
+    top_month_key <- if(nrow(month_summary)>0) month_summary$month_key[[1]] else NA_character_
+    top_month_hours<-if(nrow(month_summary)>0) month_summary$total_h[[1]] else 0
+    
+    top_month_label <- if(!is.na(top_month_key)){
+      format(as.Date(paste0(top_month_key,"-01")),"%b %Y")
+    } else{
+      "N/A"
+    }
+    
+    
     tags$div(
       tags$h4(header),
       tags$p(paste0("Hours Listened: ", round(hours_in_state,2),"h")),
@@ -1461,6 +1494,14 @@ server <- function(input, output, session) {
         years," Year", if(years==1)"" else "s"," ",
         months," Month",if(months==1)"" else "s"," ",
         days," Day",if(days==1)"" else "s"
+      )),
+      tags$p(paste0(
+        "Longest Listening Streak: ",
+        longest_streak, " Day", if(longest_streak==1) "" else "s"
+      )),
+      tags$p(paste0(
+        "Most Listened Month: ",
+        top_month_label, " (",round(top_month_hours,2),"h)"
       ))
     )
     
