@@ -112,7 +112,8 @@ ui <- fluidPage(
                     background: #d6dbe0;
                     border: 1px solid #c7cdd3;
                     color: #2c3e50;
-                  }  
+                  }
+                  
                   .drill-btn.is-active{
                     background: #2c7be5;
                     border-color: #2c7be5;
@@ -149,8 +150,20 @@ ui <- fluidPage(
           )
         ),#side pannel
         mainPanel(
-          h2("Import your Spotify data"),
-          h4("it might be called \"my_spotify_data.zip\" ")
+          HTML("<h2><b>How to get your Spotify zip file</b></h2>
+                          <h4>
+                              First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
+                              Select Extended streaming history and request the data.<br>
+                              You will receive a confirmation email instantly; click the link in that email to start the request.<br>
+                              It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
+                              Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
+                              Click on link below to be redirected to the Spotify Privacy Page<br>
+                        </h4>
+                        <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
+                        <h2><b>How to Start</b></h2>
+                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
+                        <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
+                        ")
         )#main pannel
       )#navbar 1, tab panel
       
@@ -162,8 +175,10 @@ ui <- fluidPage(
       
       tabsetPanel(##add a subsection where the analytics is the father page and the treemap is the son page
         type= "tabs",
-        tabPanel(
+        navset_tab(
+          nav_panel(
           "Home",
+        
           sidebarLayout(
             sidebarPanel(
               width=3, ##reverted back as the graph isnt the main focus of the page to give insight
@@ -178,11 +193,11 @@ ui <- fluidPage(
                   actionButton("btn_artist","Artist",class="drill-btn"),
                   actionButton("btn_song","Song", class="drill-btn")
                 ),
-                
+
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
-                DTOutput("rank_table")          
-              )
+                DTOutput("rank_table") 
+                )
             ),
             
             mainPanel(##added div for aesthetic reasons on page
@@ -210,19 +225,29 @@ ui <- fluidPage(
                   column(4,class="gap-col",
                          div(class="chart-card",
                              uiOutput("heatmap_controls_ui"),
-                             highchartOutput("graph_5_heatmap", height = "380px"))
-                  )
+                             highchartOutput("graph_5_heatmap", height = "380px")
+                             )
+                        )
                 ),
-                tags$hr()
-                
-                
-                
+                tags$hr() 
               )
             )
           )
+          ),
+            nav_panel(
+              "Comparison",
+              sidebarLayout(
+                sidebarPanel("temp"),
+                mainPanel("temp")
+              )
+            )
         )
       )
     ),
+    
+
+          
+
     ##TEMP TAB3
     #temp 
     
@@ -230,7 +255,6 @@ ui <- fluidPage(
       "Help", 
       navset_tab(
         nav_panel(title = "Usage of the Zip File", p(""),
-                  
                   tags$head(
                     tags$style(HTML("
                                     body {
@@ -238,9 +262,9 @@ ui <- fluidPage(
                                       
                                     }
                                   "))
-                  ),
-                  #how to download and use the file
-                  HTML("<h2><b>How to get your Spotify zip file</b></h2>
+                            ),
+                    #how to download and use the file
+                    HTML("<h2><b>How to get your Spotify zip file</b></h2>
                           <h4>
                               First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
                               Select Extended streaming history and request the data.<br>
@@ -256,55 +280,56 @@ ui <- fluidPage(
                         ")
                   
                   
-        ),
+                ),
         
-        #gives a brief info on alaytics tab
-        nav_panel(title = "Analytics Tab",p(""),
-                  tags$head(
-                    tags$style(HTML("
-                                    body {
-                                      background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
-                                      
-                                    }
-                                  "))
-                  ),
-                  HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
-                        <h2><b>Pick an artist to filter by :</b></h2>
-                         <h4>                
-                              Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
-                              The artists in the drop-down list are sorted from most to least listened to.<br>          
-                              You can also pick artists from the TreeMap.<br><br>
-                               
-                         <h2><b>TreeMaps :</b></h2>
-                         <h4>
-                             Shows the artists/songs that dominate your listening.<br> 
-                             (1)When no artist is picked/default: shows the overall treemap.<br>
-                             (2)When an artist is picked: treemap of the artist picked.<br>
-                             (3)When a song is selected: detailed block of the song picked.<br>
-                             Overall:larger treemap blocks = more plays.<br><br>
-                             
-                         <h2><b>Gauge Charts : </b></h2>
-                         <h4>
-                             The gauge shows overall listening activity - higher values indicate more listening.<br>
-                             It displays three things: (1)totals, (2)percenatges,(3) rankings<br>
-                             The numbers change based on artist or song selection.<br><br>
-                             
-                         <h2><b>Line Graphs : </b></h2>
-                         <h4>   
-                             Listening trends over time - rising lines means increased listening.<br>
-                             The line graph change based on aritst or song selection.<br><br>
-                            
-                         <h2><b>HeatMap : </b></h2>
-                         <h4>Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times.<br>
-                             The heatmap changes based on artist or song selection as well.<br>
-                         
-                         <h2><b>Summary : </b></h2>
-                         <h4>There is also a brief summary of the data below the line graph.<br>
-                             The summary stats also depend on artist or song selection
-                         
-                                         ")
+                #gives a brief info on alaytics tab
+                nav_panel(title = "Analytics Tab",p(""),
+                          tags$head(
+                            tags$style(HTML("
+                                            body {
+                                              background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
+                                              
+                                            }
+                                          "))
+                          ),
+                          HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
+                                <h2><b>Pick an artist to filter by :</b></h2>
+                                 <h4>                
+                                      Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
+                                      The artists in the drop-down list are sorted from most to least listened to.<br>          
+                                      You can also pick artists from the TreeMap.<br><br>
+                                       
+                                 <h2><b>TreeMaps :</b></h2>
+                                 <h4>
+                                     Shows the artists/songs that dominate your listening.<br> 
+                                     (1)When no artist is picked/default: shows the overall treemap.<br>
+                                     (2)When an artist is picked: treemap of the artist picked.<br>
+                                     (3)When a song is selected: detailed block of the song picked.<br>
+                                     Overall:larger treemap blocks = more plays.<br><br>
+                                     
+                                 <h2><b>Gauge Charts : </b></h2>
+                                 <h4>
+                                     The gauge shows overall listening activity - higher values indicate more listening.<br>
+                                     It displays three things: (1)totals, (2)percenatges,(3) rankings<br>
+                                     The numbers change based on artist or song selection.<br><br>
+                                     
+                                 <h2><b>Line Graphs : </b></h2>
+                                 <h4>   
+                                     Listening trends over time - rising lines means increased listening.<br>
+                                     The line graph change based on aritst or song selection.<br><br>
+                                    
+                                 <h2><b>HeatMap : </b></h2>
+                                 <h4>Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times.<br>
+                                     The heatmap changes based on artist or song selection as well.<br>
+                                 
+                                 <h2><b>Summary : </b></h2>
+                                 <h4>There is also a brief summary of the data below the line graph.<br>
+                                     The summary stats also depend on artist or song selection
+                                 
+                                                 ")
                   
         ))),
+    
     #first tab gives info on how to download downlaod the zip file
     ##TEMP TAB4
     
@@ -342,8 +367,8 @@ ui <- fluidPage(
               Help tab.
               </h4>
              "))
-  ) )
-
+  ) 
+)
 
 
 # Define server logic required to draw a histogram
@@ -843,8 +868,15 @@ server <- function(input, output, session) {
     if(drill_level()=="user"){
       return(df)
     }
-    if(!is.null(current_artist())){
-      df<- df%>% filter(artistName == current_artist())
+    #added this to see if it works
+    #if(drill_level() =="artist" && !is.null(current_artist()))
+     # {
+      # df <- df %>% filter(artistName == current_artist())
+    #}
+    #added first
+    
+   if(!is.null(current_artist())){
+    df<- df%>% filter(artistName == current_artist())
     }
     if(drill_level()=="song" && !is.null(current_song())){
       df<- df%>% filter(trackName == current_song())
