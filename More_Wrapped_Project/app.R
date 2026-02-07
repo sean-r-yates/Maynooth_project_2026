@@ -40,7 +40,7 @@ library(dplyr)
 library(highcharter)
 library(tidyr)
 library(DT)
-
+library(rlang)
 
 ui <- fluidPage(
   useShinyjs(),
@@ -1061,11 +1061,14 @@ server <- function(input, output, session) {
       arrange(desc(ym)) %>%
       pull(ym)
     
+    month_labbels <- format(as.Date(paste0(months,"-01")), "%b %Y")
+    month_choice <- c("ALL"= "ALL", setNames(months, month_labbels))
+    
     selectInput(
       "month_choice",
       "Month:",
-      choices = c("ALL", months),
-      selected = if (!is.null(input$month_choice)) input$month_choice else "ALL"
+      choices = month_choice,
+      selected = input$month_choice %||% "ALL"
     )
   })
   
@@ -1321,16 +1324,34 @@ server <- function(input, output, session) {
         min = 0
       ) %>%
       hc_plotOptions(
+        series = list(
+          states = list(
+            hover = list(
+              halo = list(
+                size = 0
+              )
+            ) 
+          )
+        ),
         heatmap = list(
           borderWidth = 1,
           borderColor = "#e6e6e6",
           dataLabels = list(
             enabled = T,
             useHTML = T,
+            align = "left",
+            verticalAlign = "top",
+            padding= 1,
+            style = list(
+              fontSize = "9px",
+              textOutline= "none",
+              color = "#2c3e50",
+              opacity = .75
+            ),
             formatter = JS("
                           function(){
-                            return '<span style=\"font-size:11px;color:#2c3e50;opacity:0.85\">' +
-                                   (this.point.day_label || '') + '</span>';
+                            if (this.point && this.point.state === 'hover') return '';
+                            return this.point.day_label || '';
                           }")
           )
         )
@@ -1340,7 +1361,9 @@ server <- function(input, output, session) {
         data = pts
       ) %>%
       hc_tooltip(
-        useHTML = TRUE,
+        useHTML = T,
+        outside = T,
+        hideDelay =40,
         formatter = JS(sprintf("
                                 function () {
                                   var label = this.point.date_str || ('Day ' + (this.point.day_label || ''));
@@ -1352,14 +1375,13 @@ server <- function(input, output, session) {
       )
     
   })
-  
+  #text on screen 
   output$text_area<- renderUI({
     df_all <- base_df()
     df_f <- filtered_df()
     req(nrow(df_all)>0)
     
-    total_hours_all<- sum(df_all$hoursPlayed)
-    hours_in_state<- sum(df_f$hoursPlayed)
+    hours_in_state <- sum(df_f$hoursPlayed)
     
     state<- page_state()
     header <- if (state =="none"){
@@ -1370,17 +1392,81 @@ server <- function(input, output, session) {
       paste0("Song selected: ", current_song(), " (",current_artist(),")")
     }
     
-    share <- 100*hours_in_state / max(1e-9,total_hours_all)
+    
+    #time of day weighted by hours
+    by_period <- df_f %>%
+      mutate(
+        period = case_when(
+          hour>= 5 & hour <12 ~ "Morning",
+          hour>= 21 |hour <5 ~ "Night",
+          TRUE ~"Day"
+        )
+      )%>%
+      group_by(period)%>%
+      summarise(h = sum(hoursPlayed), .groups="drop")
+    
+    morning_h <- by_period$h[by_period$period == "Morning"]; if(length(morning_h)==0) morning_h<-0
+    night_h <- by_period$h[by_period$period == "Night"]; if(length(night_h)==0) night_h<-0
+    day_h <- by_period$h[by_period$period == "Day"]; if(length(day_h)==0) day_h<-0
+    
+    
+    #decide on label
+    #mixed when top 2 are close (10%)
+    vals<- sort(c(Morning = morning_h,Night=night_h,Day=day_h), decreasing =T)
+    primary_time<- if(length(vals)>= 2&& vals[1]>0 &&(vals[1] - vals[2])/vals[1]<=.10){
+      "Mixed"
+    } else{
+      names(vals)[1]
+    }
+    
+    #calander difference from first to last date 
+    d_min <-min(df_f$date)
+    d_max <-max(df_f$date)
+    
+    d_start <- as.Date(d_min)
+    d_end <- as.Date(d_max)
+    
+    #full years
+    years<- as.integer(format(d_end,"%Y"))-as.integer(format(d_start,"%Y"))
+    anniv_year <- as.Date(sprintf("%04d-%02d-%02d",
+                                  as.integer(format(d_start,"%Y"))+years,
+                                  as.integer(format(d_start,"%m")),
+                                  as.integer(format(d_start,"%d"))))
+    while(anniv_year > d_end){
+      years<-years -1
+      anniv_year<- as.Date(sprintf("%04d-%02d-%02d",
+                                   as.integer(format(d_start,"%Y"))+years,
+                                   as.integer(format(d_start,"%m")),
+                                   as.integer(format(d_start,"%d"))))
+      }
+    #full months after years
+    cursor<- anniv_year
+    months <- 0L
+    repeat{
+      next_month<- seq(cursor,by="1 month",length.out=2)[2]
+      if(next_month<= d_end){
+        months<-months+1L
+        cursor<- next_month
+      }else break
+    }
+    
+    days <- as.integer(d_end-cursor)
     
     tags$div(
       tags$h4(header),
       tags$p(paste0("Hours Listened: ", round(hours_in_state,2),"h")),
-      tags$p(paste0("Precentage of Listening Time: ", round(share,2),"%")),
-      tags$p(paste0("Date range from: ",
-                    as.character(min(df_f$date)),
-                    " To: ",
-                    as.character(max(df_f$date))))
+      tags$p(paste0("Primary Listening time of day: ",primary_time)),
+      tags$p(paste0(
+        "Listening period: ",
+        years," Year", if(years==1)"" else "s"," ",
+        months," Month",if(months==1)"" else "s"," ",
+        days," Day",if(days==1)"" else "s"
+      ))
     )
+    
+    
+    
+    
   })
 
 
