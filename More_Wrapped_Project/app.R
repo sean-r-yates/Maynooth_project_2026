@@ -41,13 +41,36 @@ library(highcharter)
 library(tidyr)
 library(DT)
 library(rlang)
+library(bslib)
 
 ui <- fluidPage(
   useShinyjs(),
   
   tags$head(
     tags$link(rel="icon",type="image/x-icon" ,href="light_favicon.ico"),
-    tags$link(rel="icon",type="image/png",size="32x32",href="light_favicon-32x32.png")
+    tags$link(rel="icon",type="image/png",size="32x32",href="light_favicon-32x32.png"),
+    tags$script(HTML("
+                      window.compPickedIds = [];
+                      Shiny.addCustomMessageHandler('comp_sel_ids', function(ids){
+                        window.compPickedIds = ids || [];
+                        var el = $('#comp_table table');
+                        if(!el.length) return;
+                        var t = el.DataTable();
+                        if(!t) return;
+                        t.rows().every(function(){
+                          var d = this.data();
+                          var n = this.node();
+                          if(!d || !n) return;
+                          var id = d[d.length-1];
+                          if(window.compPickedIds.indexOf(id) >= 0){
+                            $(n).addClass('comp-picked');
+                          }else{
+                            $(n).removeClass('comp-picked');
+                          }
+                        });
+                      });
+                    ")
+    )
   ),
   tags$style(HTML("
                   .navbar .container-fluid,
@@ -116,9 +139,10 @@ ui <- fluidPage(
                     color: #fff;
                   }
                   
-                   /*main panel in help and about*/ 
-                  .haa-bg{
-                    background: #ECF0F1
+                  
+                  table.dataTable tbody tr.comp-picked td{
+                    background:#2c7be5 !important;
+                    color:#fff !important;
                   }
                   ")
   ),
@@ -135,40 +159,72 @@ ui <- fluidPage(
     tabPanel(
       "Landing_page",
       value="landing",
-      sidebarLayout(
-        sidebarPanel(
-          tags$h3("Import Zip:"),
-          fileInput(
-            "zip_",#this is the data variable name
-            label =NULL,#text
-            multiple = F,
-            accept=".zip"
-          )
-        ),#side pannel
-        mainPanel(
-          HTML("<h2><b>How to get your Spotify zip file</b></h2>
-                          <h4>
-                              First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
-                              Select Extended streaming history and request the data.<br>
-                              You will receive a confirmation email instantly; click the link in that email to start the request.<br>
-                              It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
-                              Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
-                              Click on link below to be redirected to the Spotify Privacy Page<br>
-                        </h4>
-                        <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
-                        <h2><b>How to Start</b></h2>
-                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
-                        <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
-                        ")
-        )#main pannel
-      )#navbar 1, tab panel
       
+      fluidRow(
+        
+        #ZIP upload
+        column(
+          4,
+          wellPanel(
+            tags$h3("Import Zip:"),
+            fileInput(
+              "zip_",
+              label = NULL,
+              multiple = F,
+              accept = ".zip"
+            )
+          )
+        ),
+        
+        #manual file upload
+        column(
+          4,
+          wellPanel(
+            tags$h3("Import Files:"),
+            tags$p(tags$u("Required:")),
+            tags$p("• StreamingHistory_music_[0-9].json (1 or more)"),
+            tags$p("• Marquee.json (exact name)"),
+            
+            fileInput(
+              "music_files",
+              label = "StreamingHistory files",
+              multiple = TRUE,
+              accept = ".json"
+            ),
+            
+            fileInput(
+              "marquee_file",
+              label = "Marquee.json",
+              multiple = FALSE,
+              accept = ".json"
+            )
+          )
+        ),
+        
+        #text area 
+        column(
+          4,
+          wellPanel(
+            HTML("<h2><b>How to Start</b></h2>
+            
+                <h4>Upload your zip file <i>or</i> upload the required files to unlock the analytics tab and explore your listening insights.</h4><br>
+                
+                <h6><u>Important: Only .zip or the exact .json files are accepted</u></h6>
+                
+                <p> for more help visit the help page
+                        ")
+          )
+        )
+        
+      )
     ),
-    ## TEMP TAB2                                               
+    
+    ## analytics tab                                               
     tabPanel(
       "Analytics",
       value = "analytics",
       navset_tab(##add a subsection where the analytics is the father page and the treemap is the son page
+        id = "analytics_tabs",
         nav_panel(
           "Home",
           sidebarLayout(
@@ -229,15 +285,73 @@ ui <- fluidPage(
         nav_panel(
           "Comparison",
           sidebarLayout(
-            sidebarPanel("temp"),
-            mainPanel("temp")
+            sidebarPanel(
+              width = 3,
+              
+              # simple heading + mode
+              div(style="margin-bottom:8px;font-weight:700;","Selection of:"),
+              div(
+                class = "drill-row", 
+                actionButton("comp_btn_artist","Artist",class = "drill-btn"),
+                actionButton("comp_btn_song","Song", class = "drill-btn")
+              ),
+              
+              # shared date slider in compare
+              uiOutput("comp_date_range_ui"),
+              
+              tags$div(style="margin-top:8px;"),
+              DTOutput("comp_table"),
+              
+            ),
+            
+            mainPanel(
+              div(
+                class = "main-bg",
+                div(
+                  style = "margin-bottom:8px; display:flex; align-items:center; gap:10px;",
+                  tags$span(tags$b("Metric:")),
+                  radioButtons(
+                    "comp_metric", label=NULL,
+                    choices=c("Hours","Plays"),
+                    selected="Hours",
+                    inline=T
+                  )
+                ),
+                div(
+                  class="chart-card",
+                  highchartOutput("comp_month_bar", height = "300px")
+                ),
+                tags$div(style="height:10px;"),
+                fluidRow(
+                  column(
+                    6, class = "gap-col",
+                    div(
+                      class="chart-card",
+                      highchartOutput("comp_month_line", height = "300px")
+                    )
+                  ),
+                  column(
+                    3, class = "gap-col",
+                    div(
+                      class="chart-card",
+                      uiOutput("comp_text_area_a")
+                    )
+                  ),
+                  column(
+                    3, class = "gap-col",
+                    div(
+                      class="chart-card",
+                      uiOutput("comp_text_area_b")
+                    )
+                  )
+                )
+              )
+            )
           )
         )
       )
     ),
-    ##TEMP TAB3
-    #temp 
-    
+    #help tab
     tabPanel(
       "Help", 
       navset_tab(
@@ -249,9 +363,9 @@ ui <- fluidPage(
                                       
                                     }
                                   "))
-                            ),
-                    #how to download and use the file
-                    HTML("<h2><b>How to get your Spotify zip file</b></h2>
+                  ),
+                  #how to download and use the file
+                  HTML("<h2><b>How to get your Spotify zip file</b></h2>
                           <h4>
                               First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
                               Select Extended streaming history and request the data.<br>
@@ -267,19 +381,19 @@ ui <- fluidPage(
                         ")
                   
                   
-                ),
+        ),
         
-                #gives a brief info on alaytics tab
-                nav_panel(title = "Analytics Tab",p(""),
-                          tags$head(
-                            tags$style(HTML("
+        #gives a brief info on alaytics tab
+        nav_panel(title = "Analytics Tab",p(""),
+                  tags$head(
+                    tags$style(HTML("
                                             body {
                                               background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
                                               
                                             }
                                           "))
-                          ),
-                          HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
+                  ),
+                  HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
                                 <h2><b>Pick an artist to filter by :</b></h2>
                                  <h4>                
                                       Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
@@ -316,10 +430,7 @@ ui <- fluidPage(
                                                  ")
                   
         ))),
-    
-    #first tab gives info on how to download downlaod the zip file
-    ##TEMP TAB4
-    
+    #about page
     tabPanel(
       "About", 
       tags$head(
@@ -370,13 +481,58 @@ server <- function(input, output, session) {
   
   observe({set_active_button(drill_level())})
   
+  #warning message toast (yummy)
+  toast <- function(msg, type="message"){
+    showNotification(msg, type = type, duration = 6)
+  }
+  
+  #validate streaminghistory
+  observeEvent(input$music_files,{
+    
+    if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+    
+    mf <- input$music_files
+    if(is.null(mf)) return()
+    
+    mf_names <- mf$name %||% character(0)
+    ok <- grepl("^StreamingHistory_music_[0-9]+\\.json$", mf_names)
+    
+    if(length(mf_names) < 1 || any(!ok)){
+      toast('Missing "StreamingHistory_music_[0-9].json" (example: StreamingHistory_music_0.json).', type="error")
+      reset("music_files")
+      return()
+    }
+    
+  }, ignoreInit = T)
+  
+  #validate marquee
+  observeEvent(input$marquee_file,{
+    
+    if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+    
+    mq <- input$marquee_file
+    if(is.null(mq)) return()
+    
+    mq_name <- mq$name %||% ""
+    if(!identical(mq_name, "Marquee.json")){
+      toast('Missing "Marquee.json" (example: Marquee.json).', type="error")
+      reset("marquee_file")
+      return()
+    }
+    
+  }, ignoreInit = T)
+  
   
   ####################################################################
   ##                     "public variable"                          ##
   ####################################################################
   
-  #
-  drill_level<-reactiveVal("user") # user | artist | song
+  #keep the type of data source NULL zip manual
+  data_source <- reactiveVal(NULL)
+  
+  
+  #user artist or song
+  drill_level<-reactiveVal("user") 
   #drill state 
   current_artist <- reactiveVal(NULL)
   
@@ -389,7 +545,80 @@ server <- function(input, output, session) {
   #has full merged streaming history after zip upload
   merged_music_history <- reactiveVal(NULL)
   
-
+  #analytics compare button var
+  comp_mode_rv <- reactiveVal("Artist")
+  
+  ####################################################################
+  ##                          manual files                         ##
+  ####################################################################
+  
+  observeEvent(
+    {
+      list(input$music_files, input$marquee_file)
+    },
+    {
+      
+      # if zip exists ignore manual
+      if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+      
+      mf <-input$music_files
+      mq <-input$marquee_file
+      
+      # run only if both exist
+      if(is.null(mf) || is.null(mq)) return()
+      
+      #process manual files
+      data_source("manual")
+      
+      merged.music.files <-bind_rows(lapply(mf$datapath, function(p){
+        fromJSON(p, flatten = T)
+      }))
+      
+      merged_music_history(merged.music.files)
+      
+      
+      listening.level <- fromJSON(mq$datapath, flatten = T)
+      
+      #once execution after upload 
+      all_artists <- merged.music.files %>%
+        distinct(artistName) %>%
+        arrange(artistName) %>%
+        pull(artistName)
+      
+      
+      
+      top50_artists <- merged.music.files %>%
+        group_by(artistName) %>%
+        summarise(total_ms = sum(msPlayed), .groups="drop") %>%
+        arrange(desc(total_ms)) %>%
+        slice_head(n=50) %>%
+        pull(artistName)
+      
+      
+      ordered_top50and_artists <- c(top50_artists, setdiff(all_artists, top50_artists))
+      artist_choice(ordered_top50and_artists)
+      
+      current_artist(NULL)
+      current_song(NULL)
+      
+      
+      drill_level("user")
+      set_active_button("user")
+      
+      
+      showTab(inputId = "main_nav", target = "analytics")
+      updateNavbarPage(session, "main_nav", selected = "analytics")
+      
+    },ignoreInit = T)
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   ####################################################################
   ##            Unloading the zip file into usable data            ##
@@ -400,6 +629,7 @@ server <- function(input, output, session) {
   observeEvent(input$zip_,{
     
     req(input$zip_)#confirms that the zip is uploaded before going ahead
+    data_source("zip")
     
     temp_dir <- tempdir()
     unzip(input$zip_$datapath,exdir = temp_dir)
@@ -412,11 +642,13 @@ server <- function(input, output, session) {
       full.names = T
     )
     
+    
+    
     req(length(music.files) > 0)
     
     #merging the music files 
     merged.music.files <- bind_rows(lapply(music.files,function(i){
-      fromJSON(i,flatten = TRUE)
+      fromJSON(i,flatten = T)
     }))
     
     #saving the full data set
@@ -425,7 +657,7 @@ server <- function(input, output, session) {
     
     #getting the files for Marquee
     listening.levels.file.dir <- file.path(temp_dir,"Spotify Account Data/Marquee.json")
-    listening.level <- fromJSON(listening.levels.file.dir,flatten = TRUE)
+    listening.level <- fromJSON(listening.levels.file.dir,flatten = T)
     
     
     #unhides Analytics tab once up has been uploaded
@@ -565,7 +797,7 @@ server <- function(input, output, session) {
       )
     )%>%
       formatRound("playtime",2)
-  })
+  },server =T)
   
   observeEvent(input$rank_table_rows_selected,{
     i <- input$rank_table_rows_selected
@@ -679,10 +911,10 @@ server <- function(input, output, session) {
   
   
   ####################################################################
-  ##                          Main panel                            ##
+  ##                       Main panel Analytics                     ##
   ####################################################################
   
-
+  
   
   
   
@@ -845,13 +1077,13 @@ server <- function(input, output, session) {
     }
     #added this to see if it works
     #if(drill_level() =="artist" && !is.null(current_artist()))
-     # {
-      # df <- df %>% filter(artistName == current_artist())
+    # {
+    # df <- df %>% filter(artistName == current_artist())
     #}
     #added first
     
-   if(!is.null(current_artist())){
-    df<- df%>% filter(artistName == current_artist())
+    if(!is.null(current_artist())){
+      df<- df%>% filter(artistName == current_artist())
     }
     if(drill_level()=="song" && !is.null(current_song())){
       df<- df%>% filter(trackName == current_song())
@@ -973,10 +1205,10 @@ server <- function(input, output, session) {
     r<- rs$artist_rank %>% filter(artistName == current_artist())%>%pull(rank)
     r<- ifelse(length(r)==0,NA,r)
     make_chart("Artists Rank",r,nrow(rs$artist_rank),suffix= "")
-      
+    
     
   })
-
+  
   
   ##chart 4
   output$graph_4_plot <-renderHighchart({
@@ -1062,7 +1294,7 @@ server <- function(input, output, session) {
       pull(ym)
     
     month_labbels <- format(as.Date(paste0(months,"-01")), "%b %Y")
-    month_choice <- c("ALL"= "ALL", setNames(months, month_labbels))
+    month_choice <- c("ALL"= "ALL", as.list(setNames(months, month_labbels)))
     
     selectInput(
       "month_choice",
@@ -1080,7 +1312,7 @@ server <- function(input, output, session) {
       updateRadioButtons(session, "heatmap_agg", selected = "Sum")
     }
   })
-
+  
   
   output$heatmap_controls_ui <- renderUI({
     show_agg <- T
@@ -1107,8 +1339,8 @@ server <- function(input, output, session) {
               inline = T
             )
         )},
-        uiOutput("month_picker_ui")
-      )
+      uiOutput("month_picker_ui")
+    )
   })
   
   
@@ -1121,10 +1353,10 @@ server <- function(input, output, session) {
     
     view <- input$heatmap_view
     agg  <- input$heatmap_agg
-
+    
     #metric hours normally, plays in song drill level
     use_plays <- (drill_level() == "song" && !is.null(current_song()))
-
+    
     df0 <- df_f %>%
       mutate(
         metric = if (use_plays) 1 else hoursPlayed,
@@ -1158,7 +1390,7 @@ server <- function(input, output, session) {
       }
       
       
-
+      
       heat <- df_h %>%
         complete(weekday, hour_label, fill = list(z = 0)) %>%
         mutate(
@@ -1175,11 +1407,11 @@ server <- function(input, output, session) {
           hc_xAxis(categories = levels(df0$hour_label), title = list(text = "Time of day")) %>%
           hc_yAxis(categories = levels(df0$weekday), title = list(text = NULL), reversed = TRUE) %>%
           hc_colorAxis(stops = list(
-              list(0.0, "#FFFFFF"),
-              list(0.35, "#4caf50"),
-              list(0.7, "#FDD835"),
-              list(1.0, "#F44336")
-            ))%>%
+            list(0.0, "#FFFFFF"),
+            list(0.35, "#4caf50"),
+            list(0.7, "#FDD835"),
+            list(1.0, "#F44336")
+          ))%>%
           hc_add_series(
             name = if (use_plays) paste(agg, "plays") else paste(agg, "hours"),
             data = Map(function(x, y, z) list(x, y, z), heat$x, heat$y, heat$z),
@@ -1192,12 +1424,12 @@ server <- function(input, output, session) {
                                               var val = this.point.value || 0;
                                               return '<b>' + day + '</b><br/>' + time + ' : <b>' + val.toFixed(2) + '%s</b>';
                                             }", suffix)))
-            )
+      )
     } 
     # monthly: 
     # - all: mean per day of month across all months
     # - specific month : show that months values of day of month 
-  
+    
     
     ######################################################
     ####-----------------------Monthly
@@ -1297,7 +1529,7 @@ server <- function(input, output, session) {
     
     
     
-
+    
     #build points with labels and the tool tip
     pts <- Map(function(x, y, z, day_label, date){
       list(
@@ -1379,11 +1611,9 @@ server <- function(input, output, session) {
   ######################################################
   ####-----------------------text on screen 
   ####################################################
-
+  
   output$text_area<- renderUI({
-    df_all <- base_df()
     df_f <- filtered_df()
-    req(nrow(df_all)>0)
     req(nrow(df_f)>0)
     
     hours_in_state <- sum(df_f$hoursPlayed)
@@ -1443,7 +1673,7 @@ server <- function(input, output, session) {
                                    as.integer(format(d_start,"%Y"))+years,
                                    as.integer(format(d_start,"%m")),
                                    as.integer(format(d_start,"%d"))))
-      }
+    }
     #full months after years
     cursor<- anniv_year
     months <- 0L
@@ -1505,12 +1735,589 @@ server <- function(input, output, session) {
       ))
     )
     
+  })
+  
+  ####################################################################
+  ##                     Analytics comparison                       ##
+  ####################################################################
+  
+  #one-time init first time user opens Comparison
+  comp_init_done      <- reactiveVal(F)
+  comp_song_seed_done <- reactiveVal(F)
+  
+  # to keep order 
+  comp_selected_artists <- reactiveVal(character(0))  
+  comp_selected_songs   <- reactiveVal(
+    tibble(
+      artistName = character(0),
+      trackName  = character(0)
+    )
+  )
+  comp_selected_month <- reactiveVal(NULL)  #YYYY-MM
+  
+  # date slider sync Home <-> Compare
+  date_sync_busy <- reactiveVal(F)
+  
+  selected_date_range <- reactive({
+    b <- base_df() ; req(b)
+    
+    min_d <- min(b$date)
+    max_d <- max(b$date)
+    
+    r_home <- input$date_range
+    r_comp <- input$comp_date_range
+    
+    if(!is.null(r_comp) && length(r_comp)==2) return(r_comp)
+    if(!is.null(r_home) && length(r_home)==2) return(r_home)
+    
+    c(min_d,max_d)
+  })
+  
+  observeEvent(input$date_range,{
+    if(isTRUE(date_sync_busy())) return()
+    if(is.null(input$date_range)) return()
+    date_sync_busy(T)
+    updateSliderInput(session,"comp_date_range", value = input$date_range)
+    date_sync_busy(F)
+  }, ignoreInit = T)
+  
+  observeEvent(input$comp_date_range,{
+    if(isTRUE(date_sync_busy())) return()
+    if(is.null(input$comp_date_range)) return()
+    date_sync_busy(T)
+    updateSliderInput(session,"date_range", value = input$comp_date_range)
+    date_sync_busy(F)
+  }, ignoreInit = T)
+  
+  output$comp_date_range_ui <- renderUI({
+    df <- base_df() ; req(df)
+    min_d <- min(df$date)
+    max_d <- max(df$date)
+    cur   <- selected_date_range()
+    
+    sliderInput(
+      "comp_date_range",
+      "Date range",
+      min = min_d,
+      max = max_d,
+      value = cur,
+      timeFormat = "%Y-%m-%d"
+    )
+  })
+  ##
+  
+  
+  
+  # first time only: seed top 2 artists by HOURS
+  observeEvent(input$analytics_tabs,{
+    if( identical(input$analytics_tabs,"Comparison") && !comp_init_done() ){
+      df <-base_df() 
+      req(df)
+      
+      # newest month drilled 
+      newest_key <- format(max(df$date), "%Y-%m")
+      comp_selected_month(newest_key)
+      
+      top2<- df %>%
+        group_by(artistName) %>%
+        summarise(playtime = sum(hoursPlayed), .groups="drop") %>%
+        arrange(desc(playtime)) %>%
+        slice_head(n=2) %>%
+        pull(artistName)
+      
+      comp_selected_artists(top2)
+      # keep songs empty until user switches to Song mode
+      comp_selected_songs(tibble(artistName=character(0), trackName=character(0)))
+      
+      comp_song_seed_done(F)
+      comp_init_done(T)
+    }
+  }, ignoreInit = T)
+  
+  
+  
+  # table source
+  comp_table_df <- reactive({
+    df <- base_df() 
+    req(df)
+    
+    dr <- selected_date_range()
+    df <- df %>% filter(date >= dr[1], date <= dr[2])
+    
+    metric<-input$comp_metric %||% "Hours"
+    mode <- comp_mode_rv()
+    
+    if(mode == "Artist"){
+      return(
+        df %>%
+          group_by(artistName) %>%
+          summarise(
+            playtime = if(metric == "Plays") n() else sum(hoursPlayed),.groups = "drop"
+          ) %>%
+          arrange(desc(playtime)) %>%
+          mutate(rank = row_number()) %>%
+          transmute(
+            id = paste0("A|",artistName),
+            rank = rank,
+            artist = artistName,
+            playtime = playtime
+          )
+      )
+    }
+    
+    df %>%
+      group_by(artistName, trackName) %>%
+      summarise(
+        playtime = if(metric=="Plays") n() else sum(hoursPlayed), .groups="drop"
+      ) %>%
+      arrange(desc(playtime)) %>%
+      mutate(rank=row_number()) %>%
+      transmute(
+        id = paste0("S|",artistName,"|",trackName),
+        rank = rank,
+        artist = artistName,
+        song = trackName,
+        playtime = playtime
+      )
+  })
+  
+  # DT render (server-side to avoid big client warning)
+  output$comp_table <- renderDT({
+    df <- comp_table_df()
+    req(nrow(df) > 0)
+    
+    show_song <- identical(comp_mode_rv(), "Song")
+    metric    <- input$comp_metric %||% "Hours"
+    if (show_song) {
+      view <- df %>% select(rank, artist, song, playtime, id)
+    } else {
+      view <- df %>% select(rank, artist, playtime, id)
+    }
+    
+    if (metric == "Plays") {
+      names(view)[names(view) == "playtime"] <- "playcount"
+    }
+    
+    datatable(
+      view,
+      rownames = F,
+      selection = "none",
+      options = list(
+        pageLength = 10,       # keep 10 visible
+        lengthChange = T,
+        order = list(list(0,"asc")),
+        columnDefs = list(
+          list(targets = which(names(view)=="id") - 1, visible = F)
+        )
+      ),
+      callback = JS("
+                    function repaintPicked(){
+                      var ids = window.compPickedIds || [];
+                      table.rows().every(function(){
+                        var d = this.data();
+                        var n = this.node();
+                        if(!d || !n) return;
+                        var id = d[d.length - 1];
+                        if(ids.indexOf(id) >= 0){
+                          $(n).addClass('comp-picked');
+                        } else {
+                          $(n).removeClass('comp-picked');
+                        }
+                      });
+                    }
+              
+                    table.on('click', 'tbody tr', function(){
+                      var row = table.row(this);
+                      var data = row.data();
+                      if(!data) return;
+                      var id = data[data.length - 1];
+                      Shiny.setInputValue('comp_row_click', {id:id, nonce:Date.now()}, {priority:'event'});
+                    });
+              
+                    table.on('draw.dt order.dt search.dt page.dt', repaintPicked);
+                    repaintPicked();
+                  ")
+    ) %>% {
+      if(metric == "Plays"){
+        formatRound(., "playcount", 0)
+      } else{
+        formatRound(., "playtime", 2)
+      }
+    }
+  }, server = T)
+  
+  # row click toggles selected set (multi-select preserved)
+  observeEvent(input$comp_row_click,{
+    info <- input$comp_row_click
+    req(!is.null(info$id))
+    
+    id <- as.character(info$id)#force a character
+    if (!nzchar(id)) return()
+    
+    mode <- comp_mode_rv()
+    
+    # artist click
+    if (startsWith(id, "A|")) {
+      
+      if(!identical(mode,"Artist")) return()
+      
+      a   <- sub("^A\\|", "", id)
+      cur <- comp_selected_artists()
+      
+      if(a %in% cur){
+        # allow deselect
+        comp_selected_artists(setdiff(cur, a))
+        return()
+      }
+      
+      # replace-oldest
+      if(length(cur) >= 2){
+        cur <- cur[-1]
+      }
+      comp_selected_artists(c(cur, a))
+      return()
+    }
+    # song click
+    if (startsWith(id, "S|")) {
+      
+      if(!identical(mode,"Song")) return()
+      
+      parts <- strsplit(id, "\\|")[[1]]
+      if(length(parts) < 3) return()
+      
+      a <- parts[2]
+      t <- paste(parts[3:length(parts)], collapse="|")
+      
+      cur <- comp_selected_songs()
+      hit <- which(cur$artistName == a & cur$trackName == t)
+      
+      if(length(hit)){
+        comp_selected_songs(cur[-hit, , drop=FALSE])
+        return()
+      }
+      
+      # add with replace-oldest if needed
+      if(nrow(cur) >= 2){
+        cur <- cur[-1, , drop=FALSE]
+      }
+      comp_selected_songs(bind_rows(cur, tibble(artistName=a, trackName=t)))
+      return()
+    }
+  }, ignoreInit = T)
+  
+  #first click on song / based on toggle metric 
+  observeEvent(comp_mode_rv(),{
+    
+    if(!identical(comp_mode_rv(),"Song")) return()
+    if(isTRUE(comp_song_seed_done()))     return()
+    
+    df <- base_df()
+    req(df)
     
     
+    metric <- input$comp_metric %||% "Hours"
+    
+    
+    top2songs <- df%>%
+      group_by(artistName, trackName) %>%
+      summarise(
+        playtime = if(metric=="Plays") n() else sum(hoursPlayed),.groups="drop") %>%
+      arrange(desc(playtime)) %>%
+      slice_head(n=2)
+    
+    if(nrow(top2songs) < 2){
+      comp_selected_songs(top2songs %>% transmute(artistName, trackName))
+    } else{
+      comp_selected_songs(top2songs %>% transmute(artistName, trackName))
+    }
+    
+    comp_song_seed_done(T)
+    
+  }, ignoreInit = T)
+  
+  
+  
+  
+  
+  # add blue highlight class after every table draw using ids
+  observe({
+    sel_ids <- c(
+      paste0("A|", comp_selected_artists()),
+      if(nrow(comp_selected_songs())>0)
+        paste0("S|", comp_selected_songs()$artistName, "|", comp_selected_songs()$trackName)
+      else character(0)
+    )
+    
+    session$sendCustomMessage("comp_sel_ids", sel_ids)
+  })
+  
+  #buttons 
+  
+  set_comp_mode_btn <- function(mode){
+    runjs(sprintf("
+                  $('#comp_btn_artist').removeClass('is-active');
+                  $('#comp_btn_song').removeClass('is-active');
+                  if('%s'=='Artist'){ $('#comp_btn_artist').addClass('is-active'); }
+                  if('%s'=='Song')  { $('#comp_btn_song').addClass('is-active'); }
+                ", mode, mode))
+  }
+  
+  observe({
+    set_comp_mode_btn(comp_mode_rv())
+  })
+  
+  observeEvent(input$comp_btn_artist,{
+    comp_mode_rv("Artist")
+  },ignoreInit=T)
+  
+  observeEvent(input$comp_btn_song,{
+    comp_mode_rv("Song")
+  }, ignoreInit = T)
+  
+  #month
+  observeEvent(input$comp_month_pick,{
+    info <- input$comp_month_pick
+    req(!is.null(info$key))
+    comp_selected_month(as.character(info$key))
+  }, ignoreInit = T)
+  
+  
+  
+  ####################################################################
+  ##                Analytics comparison Graphs                     ##
+  ####################################################################
+  
+  
+  output$comp_month_bar <- renderHighchart({
+    
+    df <- base_df() 
+    req(df)
+    metric <- input$comp_metric %||% "Hours"
+    mode <- comp_mode_rv()
+    
+    #newest month
+    if(is.null(comp_selected_month())){
+      comp_selected_month(format(max(df$date), "%Y-%m"))
+    }
+    
+    df <- df %>%mutate(ym = format(date, "%Y-%m"))
+    
+    
+    month_keys <- sort(unique(df$ym))
+    month_labels <- format(as.Date(paste0(month_keys,"-01")), "%b %Y")
+    
+    #build stacked values depending on mode and selected metric
+    if(identical(mode,"Artist")){
+      
+      sel<- comp_selected_artists()
+      req(length(sel)== 2)   # enforce exactly 2 to show
+      
+      m <- df%>%
+        filter(artistName%in%sel)%>%
+        group_by(ym,artistName)%>%
+        summarise(
+          y = if(metric=="Plays") n() else sum(hoursPlayed),
+          .groups="drop"
+        ) %>%
+        complete(ym = month_keys, artistName = sel, fill = list(y=0))%>%
+        arrange(match(ym, month_keys), match(artistName, sel))
+      
+      s1 <- m %>%filter(artistName ==sel[1])%>%pull(y)
+      s2 <- m %>%filter(artistName ==sel[2])%>%pull(y)
+      
+      series <- list(
+        list(name =sel[1] ,data = as.list(s1),type="column"),
+        list(name =sel[2] ,data = as.list(s2),type="column")
+      )
+      
+    } else {
+      
+      sel <- comp_selected_songs()
+      req(nrow(sel) == 2)
+      
+      #stable naming
+      n1 <- paste0(sel$trackName[[1]]," (",sel$artistName[[1]],")")
+      n2 <- paste0(sel$trackName[[2]]," (",sel$artistName[[2]],")")
+      
+      
+      m <- df %>%
+        inner_join(sel, by=c("artistName","trackName"))%>%
+        group_by(ym, artistName, trackName) %>%
+        summarise(
+          y = if(metric=="Plays") n() else sum(hoursPlayed),.groups="drop") %>%
+        mutate(series_id = paste0(trackName,"|||",artistName))%>%
+        complete(
+          ym = month_keys,
+          series_id = paste0(sel$trackName,"|||",sel$artistName),
+          fill = list(y=0)
+        ) %>%
+        arrange(match(ym, month_keys))
+      
+      
+      id1 <- paste0(sel$trackName[[1]],"|||",sel$artistName[[1]])
+      id2 <- paste0(sel$trackName[[2]],"|||",sel$artistName[[2]])
+      
+      s1 <- m %>%filter(series_id == id1) %>%pull(y)
+      s2 <- m %>%filter(series_id == id2) %>%pull(y)
+      
+      
+      series <- list(
+        list(name = n1, data = as.list(s1), type="column"),
+        list(name = n2, data = as.list(s2), type="column")
+      )
+    }
+    
+    month_keys_json <- toJSON(month_keys, auto_unbox = T)
+    
+    highchart() %>%
+      hc_chart(type="column") %>%
+      hc_title(text = "Monthly comparison (stacked)") %>%
+      hc_xAxis(categories = month_labels) %>%
+      hc_yAxis(
+        title = list(text = if(metric=="Plays") "Plays" else "Hours"),
+        stackLabels = list(enabled = F)
+      ) %>%
+      hc_plotOptions(
+        column = list(stacking = "normal"),
+        series = list(
+          
+          # click on segment drills to that month
+          point = list(
+            events = list(
+              click = JS(sprintf("
+                                  function(){
+                                    var monthKeys = %s;
+                                    var key = monthKeys[this.x];
+                                    Shiny.setInputValue('comp_month_pick', {key:key, nonce:Date.now()}, {priority:'event'});
+                                  }
+                                ", month_keys_json))
+            )
+          ),
+          
+          # legend click dims other
+          events = list(
+            legendItemClick = JS("
+                                  function(e){
+                                    var chart = this.chart;
+                                    var clicked = this;
+                                    var already = chart._dimSeriesName || null;
+                      
+                                    if(already && already === clicked.name){
+                                      // reset
+                                      chart.series.forEach(function(s){
+                                        if(s.group) s.group.attr({ opacity: 1 });
+                                        if(s.dataLabelsGroup) s.dataLabelsGroup.attr({ opacity: 1 });
+                                      });
+                                      chart._dimSeriesName = null;
+                                      return false;
+                                    }
+                      
+                                    chart.series.forEach(function(s){
+                                      var op = (s.name === clicked.name) ? 1 : 0.2;
+                                      if(s.group) s.group.attr({ opacity: op });
+                                      if(s.dataLabelsGroup) s.dataLabelsGroup.attr({ opacity: op });
+                                    });
+                                    chart._dimSeriesName = clicked.name;
+                                    return false;
+                                  }
+                                ")
+          )
+        )
+      ) %>%
+      hc_tooltip(shared =T) %>%
+      hc_add_series_list(series)
     
   })
-
-
+  
+  
+  output$comp_month_line <- renderHighchart({
+    
+    df <- base_df()
+    req(df)
+    
+    metric <- input$comp_metric%||% "Hours"
+    mode <- comp_mode_rv()
+    
+    #newest month 
+    mkey <-comp_selected_month()
+    if(is.null(mkey) || !nzchar(mkey)){
+      mkey <- format(max(df$date), "%Y-%m")
+      comp_selected_month(mkey)
+    }
+    
+    
+    first_date <- as.Date(paste0(mkey,"-01"))
+    last_date <- seq(first_date, by="1 month", length.out=2)[2] - 1
+    month_dates <- seq(first_date, last_date, by="day")
+    
+    df_m <- df %>%
+      filter(date >= first_date, date <= last_date)
+    
+    make_ts <- function(dates, vals){
+      m <- tibble(date = month_dates) %>%
+        left_join(tibble(date=dates, y=vals), by="date")%>%
+        arrange(date)
+      
+      Map(function(d,y){
+        list(datetime_to_timestamp(as.POSIXct(d)), if(is.na(y)) 0 else y)
+      }, m$date, m$y)
+    }
+    
+    
+    series <- list()
+    
+    
+    if(identical(mode,"Artist")){
+      sel <- comp_selected_artists()
+      req(length(sel) == 2)
+      
+      for(a in sel){
+        tmp <- df_m %>%
+          filter(artistName == a) %>%
+          group_by(date) %>%
+          summarise(
+            y = if(metric=="Plays") n() else sum(hoursPlayed),.groups="drop")
+        series[[length(series)+1]] <- list(
+          name = a,
+          type = "line",
+          data = make_ts(tmp$date, tmp$y)
+        )
+      }
+    } else {
+      sel <- comp_selected_songs()
+      req(nrow(sel)== 2)
+      
+      for(i in 1:2){
+        a <- sel$artistName[[i]]
+        t <- sel$trackName[[i]]
+        
+        tmp <- df_m %>%
+          filter(artistName==a, trackName==t)%>%
+          group_by(date)%>%
+          summarise(
+            y = if(metric=="Plays") n() else sum(hoursPlayed),.groups="drop"
+          )
+        
+        series[[length(series)+1]] <- list(
+          name = paste0(t," (",a,")"),
+          type = "line",
+          data = make_ts(tmp$date, tmp$y)
+        )
+      }
+    }
+    
+    highchart() %>%
+      hc_chart(type="line")%>%
+      hc_title(text = paste0("Daily drilldown: ", format(first_date, "%b %Y")))%>%
+      hc_xAxis(type="datetime")%>%
+      hc_yAxis(title = list(text = if(metric=="Plays") "Plays" else "Hours"))%>%
+      hc_tooltip(shared = T, valueDecimals = if(metric=="Plays") 0 else 2)%>%
+      hc_add_series_list(series)
+    
+  })
+  
+  
+  
 }
 
 # Run the application 
