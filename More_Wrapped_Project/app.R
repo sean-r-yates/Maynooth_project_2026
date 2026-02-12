@@ -41,6 +41,7 @@ library(highcharter)
 library(tidyr)
 library(DT)
 library(rlang)
+library(bslib)
 
 ui <- fluidPage(
   useShinyjs(),
