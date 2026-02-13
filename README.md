@@ -3,7 +3,7 @@
 ## Goal  
 Build an interactive **R Shiny** application that helps users explore and better understand their Spotify listening data through clear visuals, filtering tools, and insightful stats.
 
-Click [here](https://youtu.be/Aq5WXmQQooo?si=twG63JV8nXjHmVKq) for a demo of the app.
+Click [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1) for a demo of the app.
 
 ---
 
