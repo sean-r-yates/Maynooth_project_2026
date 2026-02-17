@@ -77,6 +77,7 @@ not actually used but required to run
 - https://www.highcharts.com/blog/integration/highcharts-for-r-users/
 - https://medium.com/@amitmangal2203/data-visualization-with-highcharter-in-r-programming-2453ae4b30ad
 - https://www.geeksforgeeks.org/r-language/working-with-json-files-in-r-programming/
+- https://sebastiansauer.github.io/prop_fav/
 
 and https://chatgpt.com for trouble shooting
 
