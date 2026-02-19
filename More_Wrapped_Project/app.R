@@ -236,10 +236,11 @@ ui <- fluidPage(
                 div(class = "drill-title", "Stats about:"),
                 div(
                   class = "drill-row",
-                  actionButton("btn_user", "User", class = "drill-btn"),
                   actionButton("btn_artist", "Artist", class = "drill-btn"),
-                  actionButton("btn_song", "Song", class = "drill-btn")
-                ),
+                  actionButton("btn_song", "Song", class = "drill-btn"),
+                  actionButton("btn_user", "Back", class = "drill-btn")
+                  
+                  ),
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
                 DTOutput("rank_table")
@@ -481,7 +482,7 @@ server <- function(input, output, session) {
   
   observe({set_active_button(drill_level())})
   
-  #warning message toast (yummy)
+  #warning message toast (fyummy)
   toast <- function(msg, type="message"){
     showNotification(msg, type = type, duration = 6)
   }
