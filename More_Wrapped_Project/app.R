@@ -205,13 +205,9 @@ ui <- fluidPage(
         column(
           4,
           wellPanel(
-            HTML("<h2><b>How to Start</b></h2>
-            
-                <h4>Upload your zip file <i>or</i> upload the required files to unlock the analytics tab and explore your listening insights.</h4><br>
+            HTML("
                 
-                <h6><u>Important: Only .zip or the exact .json files are accepted</u></h6>
-                
-                <p> for more help visit the help page
+                <p> visit the help page to undertsand the files need to uploaded and for more general understanding of our work<p>
                         ")
           )
         )
@@ -378,7 +374,7 @@ ui <- fluidPage(
                         <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
                         <h2><b>How to Start</b></h2>
                         <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4>
-                        <h4>You could also upload the required files to unlock the analytics tab and explore </h4>
+                        <h4>You could also upload the required files to unlock the analytics tab and explore. </h4>
                         <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
                         <h6><u>Important: Only .zip or the exact .json files are accepted</u></h6>
                         ")
@@ -386,7 +382,51 @@ ui <- fluidPage(
                   
         ),
         
-        #gives a brief info on alaytics tab
+        #gives a brief info on analytics tab
+        nav_panel(title = "Analytics Tab - Home",p(""),
+                  tags$head(
+                    tags$style(HTML("
+                                            body {
+                                              background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
+                                              
+                                            }
+                                          "))
+                  ),
+                  HTML("<h1><b>Visual and Interactive overview of the Analytics - Home Tab</b></h1>
+                        <h3>Here you can see stats about your favourite artists and songs one at a time</h3><br>
+                        <h4>You can pick one from artist, songs and reset.A date slider is also prsent if you ever want to narrow down the timeline.</h4>
+                        <h4>The artist tab shows your top 50 artists, song tab shows all the songs you gave a listen while reset tab gives you all artists from your data(.zip file)</h4>
+                                
+                                <h2><b>Pick an artist/song to filter by :</b></h2>
+                                 <h4>                
+                                      Here you can pick an artist/song of your choosing.<br>           
+                                      The artists/songs in the drop-down list are sorted from most to least listened to.
+                                      <br><br>
+                                 <h2><b>Gauge Charts : </b></h2>
+                                 <h4>
+                                     The gauge charts shows artists/song(depends on what tab you currently are on) rank - higher values indicate more listening.<br>
+                                     It also displays the percentage of total time listened to.
+                                     <br><br>
+                                     
+                                 <h2><b>Line Graphs : </b></h2>
+                                 <h4>   
+                                     Listening trends over time - rising lines means increased listening.<br>
+                                     The line graph change based on aritst/song/reset selection.<br><br>
+                                    
+                                 <h2><b>HeatMap : </b></h2>
+                                 <h4>Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times.<br>
+                                     The heatmap also changes based on artist/song/reset selection as well.<br><br>
+                                 
+                                 <h2><b>Summary : </b></h2>
+                                 <h4>There is also a brief summary of the data beside the gauge charts.<br>
+                                     The summary stats also depend on artist/song/reset selection</h4>
+                                     
+                                     
+                                 
+                                                 ")
+                  
+        ),
+        
         nav_panel(title = "Analytics Tab",p(""),
                   tags$head(
                     tags$style(HTML("
@@ -396,7 +436,9 @@ ui <- fluidPage(
                                             }
                                           "))
                   ),
-                  HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
+                  HTML("<h1><b>Visual and Interactive overview of the Analytics - Comparison Tab</b></h1>
+                        <h2><b>Here you can compare your favourite artists and songs</b></h2>
+                        <h4><u>Note that you can ony compare two artists at a time</u></h4>
                                 <h2><b>Pick an artist to filter by :</b></h2>
                                  <h4>                
                                       Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
@@ -423,7 +465,9 @@ ui <- fluidPage(
                                  
                                                  ")
                   
-        ))),
+        )
+        
+        )),
     #about page
     tabPanel(
       "About", 
