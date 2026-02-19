@@ -236,19 +236,14 @@ ui <- fluidPage(
                 div(class = "drill-title", "Stats about:"),
                 div(
                   class = "drill-row",
-<<<<<<< HEAD
-                  actionButton("btn_artist", "Artist", class = "drill-btn"),
-                  actionButton("btn_song", "Song", class = "drill-btn"),
-                  actionButton("btn_user", "Back", class = "drill-btn")
-                  
-                  ),
-=======
+
+
                   
                   actionButton("btn_artist", "Artist", class = "drill-btn"),
                   actionButton("btn_song", "Song", class = "drill-btn"),
                   actionButton("btn_user", "Reset", class = "drill-btn")
                 ),
->>>>>>> f37df9de432c26bd2ae82b7a9156ef1d34d30d20
+
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
                 DTOutput("rank_table")
@@ -382,8 +377,10 @@ ui <- fluidPage(
                         </h4>
                         <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
                         <h2><b>How to Start</b></h2>
-                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
+                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4>
+                        <h4>You could also upload the required files to unlock the analytics tab and explore </h4>
                         <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
+                        <h6><u>Important: Only .zip or the exact .json files are accepted</u></h6>
                         ")
                   
                   
@@ -405,15 +402,6 @@ ui <- fluidPage(
                                       Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
                                       The artists in the drop-down list are sorted from most to least listened to.<br>          
                                       You can also pick artists from the TreeMap.<br><br>
-                                       
-                                 <h2><b>TreeMaps :</b></h2>
-                                 <h4>
-                                     Shows the artists/songs that dominate your listening.<br> 
-                                     (1)When no artist is picked/default: shows the overall treemap.<br>
-                                     (2)When an artist is picked: treemap of the artist picked.<br>
-                                     (3)When a song is selected: detailed block of the song picked.<br>
-                                     Overall:larger treemap blocks = more plays.<br><br>
-                                     
                                  <h2><b>Gauge Charts : </b></h2>
                                  <h4>
                                      The gauge shows overall listening activity - higher values indicate more listening.<br>
@@ -449,19 +437,19 @@ ui <- fluidPage(
       ),
       HTML("<h2><b>Authors</b></h2>
               <h3><b>Sean Ryan Yates<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
-              <h4>Github: 
+              <h4>2nd year BSc in Data Science, Maynooth University</h4>
+               
                       <a href='https://github.com/sean-r-yates' target='_blank'>
-                        Personal GitHub
+                        GitHub
                       </a>
-              </h4>
+              
               <br><h3><b>Ankush Janak Katira<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
-              <h4>Github: 
+              <h4>2nd year BSc in Data Science, Maynooth University</h4>
+
                       <a href='https://github.com/AnkushJK3' target='_blank'>
-                        Personal GitHub
+                        GitHub
                       </a>
-              </h4>
+              
               <br><br><br>
               <h2>About the Project : </h2>
               <h4>Our mission was to compute the analytics of our favourite artists and their songs. <br>With this we can't not only see our favourite 
