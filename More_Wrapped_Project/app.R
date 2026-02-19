@@ -236,11 +236,19 @@ ui <- fluidPage(
                 div(class = "drill-title", "Stats about:"),
                 div(
                   class = "drill-row",
+<<<<<<< HEAD
                   actionButton("btn_artist", "Artist", class = "drill-btn"),
                   actionButton("btn_song", "Song", class = "drill-btn"),
                   actionButton("btn_user", "Back", class = "drill-btn")
                   
                   ),
+=======
+                  
+                  actionButton("btn_artist", "Artist", class = "drill-btn"),
+                  actionButton("btn_song", "Song", class = "drill-btn"),
+                  actionButton("btn_user", "Reset", class = "drill-btn")
+                ),
+>>>>>>> f37df9de432c26bd2ae82b7a9156ef1d34d30d20
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
                 DTOutput("rank_table")
@@ -290,15 +298,12 @@ ui <- fluidPage(
               width = 3,
               
               # simple heading + mode
-              div(style="margin-bottom:8px;font-weight:700;","Selection of:"),
+              div(style="margin-bottom:8px;font-weight:700;","Compare:"),
               div(
                 class = "drill-row", 
-                actionButton("comp_btn_artist","Artist",class = "drill-btn"),
-                actionButton("comp_btn_song","Song", class = "drill-btn")
+                actionButton("comp_btn_artist","Artists",class = "drill-btn"),
+                actionButton("comp_btn_song","Songs", class = "drill-btn")
               ),
-              
-              # shared date slider in compare
-              uiOutput("comp_date_range_ui"),
               
               tags$div(style="margin-top:8px;"),
               DTOutput("comp_table"),
@@ -531,6 +536,8 @@ server <- function(input, output, session) {
   #keep the type of data source NULL zip manual
   data_source <- reactiveVal(NULL)
   
+  #YYYY-MM
+  comp_selected_month <- reactiveVal(NULL)
   
   #user artist or song
   drill_level<-reactiveVal("user") 
@@ -1247,11 +1254,11 @@ server <- function(input, output, session) {
     
     
     title_text<- if (in_song){
-      paste0("Daily plays: ",current_song())
+      paste0("(Dragable) Daily plays: ",current_song())
     }else if (!is.null(current_artist()) && drill_level()=="artist"){
-      paste0("Daily hours: ",current_artist())
+      paste0("(Dragable) Daily hours: ",current_artist())
     }else {
-      "Daily hours"
+      "(Dragable) Daily hours"
     }
     
     highchart()%>%
@@ -1754,61 +1761,23 @@ server <- function(input, output, session) {
       trackName  = character(0)
     )
   )
-  comp_selected_month <- reactiveVal(NULL)  #YYYY-MM
-  
-  # date slider sync Home <-> Compare
-  date_sync_busy <- reactiveVal(F)
+
   
   selected_date_range <- reactive({
-    b <- base_df() ; req(b)
+    b <- base_df() 
+    req(b)
     
     min_d <- min(b$date)
     max_d <- max(b$date)
     
     r_home <- input$date_range
-    r_comp <- input$comp_date_range
     
-    if(!is.null(r_comp) && length(r_comp)==2) return(r_comp)
     if(!is.null(r_home) && length(r_home)==2) return(r_home)
     
     c(min_d,max_d)
   })
   
-  observeEvent(input$date_range,{
-    if(isTRUE(date_sync_busy())) return()
-    if(is.null(input$date_range)) return()
-    date_sync_busy(T)
-    updateSliderInput(session,"comp_date_range", value = input$date_range)
-    date_sync_busy(F)
-  }, ignoreInit = T)
-  
-  observeEvent(input$comp_date_range,{
-    if(isTRUE(date_sync_busy())) return()
-    if(is.null(input$comp_date_range)) return()
-    date_sync_busy(T)
-    updateSliderInput(session,"date_range", value = input$comp_date_range)
-    date_sync_busy(F)
-  }, ignoreInit = T)
-  
-  output$comp_date_range_ui <- renderUI({
-    df <- base_df() ; req(df)
-    min_d <- min(df$date)
-    max_d <- max(df$date)
-    cur   <- selected_date_range()
-    
-    sliderInput(
-      "comp_date_range",
-      "Date range",
-      min = min_d,
-      max = max_d,
-      value = cur,
-      timeFormat = "%Y-%m-%d"
-    )
-  })
-  ##
-  
-  
-  
+
   # first time only: seed top 2 artists by HOURS
   observeEvent(input$analytics_tabs,{
     if( identical(input$analytics_tabs,"Comparison") && !comp_init_done() ){
@@ -1964,13 +1933,11 @@ server <- function(input, output, session) {
       
       a   <- sub("^A\\|", "", id)
       cur <- comp_selected_artists()
-      
+    
       if(a %in% cur){
-        # allow deselect
-        comp_selected_artists(setdiff(cur, a))
+        # stops you from clicking the same artist twice
         return()
       }
-      
       # replace-oldest
       if(length(cur) >= 2){
         cur <- cur[-1]
@@ -1990,10 +1957,9 @@ server <- function(input, output, session) {
       t <- paste(parts[3:length(parts)], collapse="|")
       
       cur <- comp_selected_songs()
-      hit <- which(cur$artistName == a & cur$trackName == t)
-      
-      if(length(hit)){
-        comp_selected_songs(cur[-hit, , drop=FALSE])
+     
+      already_picked<-any(cur$artistName == a & cur$trackName == t)
+      if(already_picked){
         return()
       }
       
@@ -2081,6 +2047,7 @@ server <- function(input, output, session) {
     req(!is.null(info$key))
     comp_selected_month(as.character(info$key))
   }, ignoreInit = T)
+  
   
   
   
@@ -2172,7 +2139,7 @@ server <- function(input, output, session) {
     
     highchart() %>%
       hc_chart(type="column") %>%
-      hc_title(text = "Monthly comparison (stacked)") %>%
+      hc_title(text = "Monthly comparison (Clickable)") %>%
       hc_xAxis(categories = month_labels) %>%
       hc_yAxis(
         title = list(text = if(metric=="Plays") "Plays" else "Hours"),
@@ -2317,8 +2284,255 @@ server <- function(input, output, session) {
     
   })
   
+  ####################################################################
+  ##                Analytics comparison text area                  ##
+  ####################################################################
+  comp_df_filtered <- reactive({
+    df<-base_df()
+    req(df)
+    
+    dr <- selected_date_range()
+    df <- df%>% filter(date>= dr[1],date<=dr[2])
+    
+    #follows the graph above
+    mkey <- comp_selected_month()
+    if (!is.null(mkey) && nzchar(mkey)) {
+      df <- df %>% filter(format(date, "%Y-%m") == mkey)
+    }
+    
+    df
+  })
   
+  #setting oldest to newest
+  comp_selected_pair <- reactive({
+    mode <- comp_mode_rv()
+    
+    if(identical(mode,"Artist")){
+      cur <- comp_selected_artists()
+      if(length(cur)<2)return(NULL)
+      
+      tibble(
+        type = "Artist",
+        artistName = cur,
+        trackName = NA_character_
+      )
+    } else{
+      cur <- comp_selected_songs()
+      if(nrow(cur)<2) return(NULL)
+      
+      cur%>%
+        mutate(type="Song")%>%
+        select(type,artistName,trackName)
+    }
+  })
   
+  #adding stats
+  compute_comp_entity_stats<- function(df,type,artistName,trackName =NA_character_){
+    if(identical(type,"Artist")){
+      d<- df%>% filter(artistName== !!artistName)
+      header <- paste0("Artist :", artistName)
+      
+    }else{
+      d<- df%>% filter(artistName==!!artistName,trackName==!!trackName)
+      header <- paste0("Song: ",trackName," (",artistName,")")
+    
+    }
+    
+    if(nrow(d)==0){
+      return(list(
+        header = header,
+        total_plays = 0L,
+        total_minutes = 0,
+        avg_per_day_m = 0,
+        active_days = 0L,
+        active_days_total = 0L,
+        primary_time = "N/A",
+        peak_hour_label = "N/A",
+        weekend_share = 0,
+        skip_rate = 0,
+        longest_streak = 0L,
+        best_day_label = "N/A",
+        best_day_minutes = 0
+      ))
+    }
+    
+    #total plays and minutes
+    total_plays <- nrow(d)
+    total_minutes <- sum(d$hoursPlayed) * 60
+    
+    
+    #average amount of time perday
+    by_day <- d%>%
+      group_by(date)%>%
+      summarise(m=sum(hoursPlayed)*60,.groups="drop")
+    
+    avg_per_day_m<- mean(by_day$m)
+    
+    #active days vs period
+    active_days <- n_distinct(d$date)
+    active_days_total <- n_distinct(df$date)
+    
+    
+    #mostly day or night listener 
+    by_period <- d%>%
+      mutate(
+        period = case_when(
+          hour >= 21 | hour < 5 ~ "Night",
+          TRUE ~ "Day"
+        )
+      )%>%
+      group_by(period)%>%
+      summarise(h=sum(hoursPlayed),.groups = "drop")
+    
+    day_h <- by_period$h[by_period$period=="Day"]; if(length(day_h)==0) day_h <-0
+    night_h <- by_period$h[by_period$period=="Night"]; if(length(night_h)==0) night_h <-0
+    
+    primary_time <- if(day_h == 0 && night_h == 0){
+      "N/A"
+    } else if (abs(day_h-night_h) /max(day_h,night_h)<= .1){
+      "Mixed"
+    } else if (day_h >= night_h){
+      "Day"
+    } else{
+      "Night"
+    }
+    
+    #peak hour
+    peak_hour <- d %>%
+      group_by(hour) %>%
+      summarise(h = sum(hoursPlayed), .groups = "drop") %>%
+      arrange(desc(h), hour) %>%
+      slice_head(n = 1) %>%
+      pull(hour)
+    
+    peak_hour_label <- if(length(peak_hour) == 0) "N/A" else sprintf("%02d:00", peak_hour[[1]])
+    
+    #weekend share
+    wk <- d %>%
+      mutate(is_weekend = weekdays(date) %in% c("Saturday", "Sunday")) %>%
+      summarise(
+        w = sum(hoursPlayed[is_weekend]),
+        t = sum(hoursPlayed)
+      )
+    
+    weekend_share <- ifelse(wk$t[[1]] > 0, 100 * wk$w[[1]] / wk$t[[1]], 0)
+    
+    #skip rate
+    skip_rate <- 100 * mean(d$msPlayed < 30000, na.rm = TRUE)
+
+    
+    #longest streak
+    listen_days <- sort(unique(as.Date(d$date)))
+    if(length(listen_days) == 0){
+      longest_streak <- 0L
+    } else{
+      gaps <- as.integer(diff(listen_days))
+      streak_id <- cumsum(c(1L, ifelse(gaps==1L, 0L, 1L)))
+      streak_lengths <- as.integer(table(streak_id))
+      longest_streak <- max(streak_lengths)
+    }
+
+    i_best <- which.max(by_day$m)
+    best_day_label   <- format(by_day$date[[i_best]], "%d %b %Y")
+    best_day_minutes <- by_day$m[[i_best]]
+    
+    
+    list(
+      header = header,
+      total_plays = total_plays,
+      total_minutes = total_minutes,
+      avg_per_day_m = avg_per_day_m,
+      active_days = active_days,
+      active_days_total = active_days_total,
+      primary_time = primary_time,
+      peak_hour_label = peak_hour_label,
+      weekend_share = weekend_share,
+      skip_rate = skip_rate,
+      longest_streak = longest_streak,
+      best_day_label = best_day_label,
+      best_day_minutes= best_day_minutes
+    )
+  }
+    
+  comp_entity_stats_a <- reactive({
+    df <- comp_df_filtered()
+    sel <- comp_selected_pair()
+    req(!is.null(sel), nrow(sel) >= 2)
+    
+    newest <- sel[2, , drop=F]
+    
+    compute_comp_entity_stats(
+      df = df,
+      type = newest$type[[1]],
+      artistName = newest$artistName[[1]],
+      trackName = newest$trackName[[1]]
+    )
+  })
+  
+  comp_entity_stats_b <- reactive({
+    df <- comp_df_filtered()
+    sel <- comp_selected_pair()
+    req(!is.null(sel), nrow(sel) >= 2)
+    
+    oldest <- sel[1, , drop=F]
+  
+    compute_comp_entity_stats(
+      df = df,
+      type = oldest$type[[1]],
+      artistName = oldest$artistName[[1]],
+      trackName = oldest$trackName[[1]]
+    )
+  })
+  
+  output$comp_text_area_a <- renderUI({
+    s <- comp_entity_stats_a()
+    tags$div(
+      tags$h4(s$header),
+      tags$p( 
+        paste0(
+          "Month: ",
+          ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
+                 "N/A",
+                 format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
+        )),
+      tags$p(paste0("Total plays: ", s$total_plays)),
+      tags$p(paste0("Total minutes: ", round(s$total_minutes, 1), " min")),
+      tags$p(paste0("Avg time per day: ", round(s$avg_per_day_m, 2), "min")),
+      tags$p(paste0("Active days: ", s$active_days, "/", s$active_days_total)),
+      tags$p(paste0("Skip proxy (<30s): ", round(s$skip_rate, 1), "%")),
+      tags$p(paste0("Best day: ", s$best_day_label, " (", round(s$best_day_minutes, 1), " min)")),
+      tags$p(paste0("Mostly listened: ", s$primary_time)),
+      tags$p(paste0("Weekend share: ", round(s$weekend_share, 1), "%")),
+      tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
+      tags$p(paste0("Peak hour: ", s$peak_hour_label))
+      
+      )
+  })
+  
+  output$comp_text_area_b <- renderUI({
+    s <- comp_entity_stats_b()
+    tags$div(
+      tags$h4(s$header),
+      tags$p( 
+        paste0(
+        "Month: ",
+        ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
+               "N/A",
+               format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
+      )),
+      tags$p(paste0("Total plays: ", s$total_plays)),
+      tags$p(paste0("Total minutes: ", round(s$total_minutes, 1), " min")),
+      tags$p(paste0("Avg time per day: ", round(s$avg_per_day_m, 2), "min")),
+      tags$p(paste0("Active days: ", s$active_days, "/", s$active_days_total)),
+      tags$p(paste0("Skip proxy (<30s): ", round(s$skip_rate, 1), "%")),
+      tags$p(paste0("Best day: ", s$best_day_label, " (", round(s$best_day_minutes, 1), " min)")),
+      tags$p(paste0("Mostly listened: ", s$primary_time)),
+      tags$p(paste0("Weekend share: ", round(s$weekend_share, 1), "%")),
+      tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
+      tags$p(paste0("Peak hour: ", s$peak_hour_label))
+      
+      )
+  })
 }
 
 # Run the application 
