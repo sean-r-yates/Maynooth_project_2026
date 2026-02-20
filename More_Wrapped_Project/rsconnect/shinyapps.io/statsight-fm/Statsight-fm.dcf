@@ -1,0 +1,12 @@
+name: Statsight-fm
+title:
+username: statsight-fm
+account: statsight-fm
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16722108
+bundleId: 11608121
+url: https://statsight-fm.shinyapps.io/Statsight-fm/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

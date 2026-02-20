@@ -42,6 +42,8 @@ library(tidyr)
 library(DT)
 library(rlang)
 library(bslib)
+library(rsconnect)
+
 
 ui <- fluidPage(
   useShinyjs(),
@@ -172,7 +174,7 @@ ui <- fluidPage(
               label = NULL,
               multiple = F,
               accept = ".zip"
-            )
+            ),
           )
         ),
         
@@ -187,7 +189,7 @@ ui <- fluidPage(
             
             fileInput(
               "music_files",
-              label = "StreamingHistory files",
+              label = "Streaminghistory.json files",
               multiple = TRUE,
               accept = ".json"
             ),
@@ -205,14 +207,19 @@ ui <- fluidPage(
         column(
           4,
           wellPanel(
-            HTML("<h2><b>How to Start</b></h2>
+            HTML("
+                
+               <h2><b>How to Start</b></h2>
+                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4>
+                        <h4>You could also upload the required files to unlock the analytics tab and explore. </h4>
+                        <br>
+                        <h4> Or run the <b>demo</b> using a dev's spotify Data</h4>
+                        
+                <h3>Run Demo:</h3>
+                 "),
             
-                <h4>Upload your zip file <i>or</i> upload the required files to unlock the analytics tab and explore your listening insights.</h4><br>
-                
-                <h6><u>Important: Only .zip or the exact .json files are accepted</u></h6>
-                
-                <p> for more help visit the help page
-                        ")
+            actionButton("using_demo"," Demo",icon = icon("play"),class="btn-demo"),
+            
           )
         )
         
@@ -236,10 +243,14 @@ ui <- fluidPage(
                 div(class = "drill-title", "Stats about:"),
                 div(
                   class = "drill-row",
-                  actionButton("btn_user", "User", class = "drill-btn"),
+                  
+                  
+                  
                   actionButton("btn_artist", "Artist", class = "drill-btn"),
-                  actionButton("btn_song", "Song", class = "drill-btn")
+                  actionButton("btn_song", "Song", class = "drill-btn"),
+                  actionButton("btn_user", "Reset", class = "drill-btn")
                 ),
+                
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
                 DTOutput("rank_table")
@@ -289,15 +300,12 @@ ui <- fluidPage(
               width = 3,
               
               # simple heading + mode
-              div(style="margin-bottom:8px;font-weight:700;","Selection of:"),
+              div(style="margin-bottom:8px;font-weight:700;","Compare:"),
               div(
                 class = "drill-row", 
-                actionButton("comp_btn_artist","Artist",class = "drill-btn"),
-                actionButton("comp_btn_song","Song", class = "drill-btn")
+                actionButton("comp_btn_artist","Artists",class = "drill-btn"),
+                actionButton("comp_btn_song","Songs", class = "drill-btn")
               ),
-              
-              # shared date slider in compare
-              uiOutput("comp_date_range_ui"),
               
               tags$div(style="margin-top:8px;"),
               DTOutput("comp_table"),
@@ -367,69 +375,104 @@ ui <- fluidPage(
                   #how to download and use the file
                   HTML("<h2><b>How to get your Spotify zip file</b></h2>
                           <h4>
-                              First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
-                              Select Extended streaming history and request the data.<br>
+                              First, you need to request your data.<br>
+                              To do that, go to the Spotify <a href='https://www.spotify.com/account/privacy/' target='_blank'>Privacy Page</a> and log in.<br>
+                              Select <b>Account Data</b> and request the data.<br>
                               You will receive a confirmation email instantly; click the link in that email to start the request.<br>
-                              It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
+                              It can take up to <b>5 days</b> for Spotify to gather and send your data, though it may arrive sooner.<br>
                               Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
-                              Click on link below to be redirected to the Spotify Privacy Page<br>
+                              And upload it here to start exploring your Listening habits<br>
                         </h4>
-                        <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
-                        <h2><b>How to Start</b></h2>
-                        <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4><br>
-                        <h6><u>Important: Remember you can only upload zip files, other type of files will not be accepted</u></h6>
+
+                        
                         ")
                   
                   
         ),
         
-        #gives a brief info on alaytics tab
-        nav_panel(title = "Analytics Tab",p(""),
+        #gives a brief info on analytics tab
+        nav_panel(title = "Analytics Tab - Home",p(""),
                   tags$head(
                     tags$style(HTML("
-                                            body {
-                                              background-color: #Ecf0f1; /* Use a specific HEX code or color name (e.g., 'lightgray') */
-                                              
-                                            }
-                                          "))
+                                    body {
+                                    background-color: #Ecf0f1; 
+                                    }
+                                    "))
                   ),
-                  HTML("<h1><b>Visual and Interactive overview of the Analytics Tab</b></h1>
-                                <h2><b>Pick an artist to filter by :</b></h2>
+                  HTML("<h1><b>Home Tab - Visual and Interactive overview of the Analytics</b></h1>
+                        <h3>Here you can see stats about your favourite artists and songs one at a time</h3><br>
+                        <h4>You can pick one of the three states artist, songs and reset. A date slider is also present if you ever want to narrow down the timeline.</h4>
+                        <h4>The <b>Artist</b> State shows your stats for a specific artist and a table for a specific artist's songs sorted by ranked which is based on listening time, <br>
+                        The <b>Song</b> State shows stats for a specific song, and a table showing all the songs you've listened to, <br>
+                        The <b>Reset</b> State shows stats about your overall listening, and gives you a table of your top artists sorted with rank<h4>
+                                
+                                <h2><b>Pick an artist/song to filter by :</b></h2>
                                  <h4>                
-                                      Here you can pick an artist of your choosing -  you only select one artist at a time.<br>           
-                                      The artists in the drop-down list are sorted from most to least listened to.<br>          
-                                      You can also pick artists from the TreeMap.<br><br>
-                                       
-                                 <h2><b>TreeMaps :</b></h2>
-                                 <h4>
-                                     Shows the artists/songs that dominate your listening.<br> 
-                                     (1)When no artist is picked/default: shows the overall treemap.<br>
-                                     (2)When an artist is picked: treemap of the artist picked.<br>
-                                     (3)When a song is selected: detailed block of the song picked.<br>
-                                     Overall:larger treemap blocks = more plays.<br><br>
-                                     
+                                      Here you can pick an artist/song of your choosing, <br>           
+                                      Either from the table or by search.
+                                      <br><br>
+                                      
                                  <h2><b>Gauge Charts : </b></h2>
                                  <h4>
-                                     The gauge shows overall listening activity - higher values indicate more listening.<br>
-                                     It displays three things: (1)totals, (2)percenatges,(3) rankings<br>
-                                     The numbers change based on artist or song selection.<br><br>
+                                     The gauge charts shows artists/song(depends on the current tab) rank - lower values indicate more listening.<br>
+                                     It also displays the percentage of total time listened to.
+                                     <br><br>
                                      
                                  <h2><b>Line Graphs : </b></h2>
                                  <h4>   
                                      Listening trends over time - rising lines means increased listening.<br>
-                                     The line graph change based on aritst or song selection.<br><br>
+                                     The line graph changes based on aritst/song/reset selection.
+                                     <br><br>
                                     
                                  <h2><b>HeatMap : </b></h2>
-                                 <h4>Visualizes your listening intensity across days and times; darker heatmap areas means peak listening times.<br>
-                                     The heatmap changes based on artist or song selection as well.<br>
+                                 <h4>Visualizes your listening intensity across days and times; it is color coded.<br>
+                                     The heatmap also changes based on artist/song/reset selection as well.<br><br>
                                  
                                  <h2><b>Summary : </b></h2>
-                                 <h4>There is also a brief summary of the data below the line graph.<br>
-                                     The summary stats also depend on artist or song selection
+                                 <h4>There is also a brief summary of the data beside the gauge charts.<br>
+                                     The summary stats also depend on artist/song/reset selection</h4>
+                                     
+                                     
                                  
                                                  ")
                   
-        ))),
+        ),
+        
+        nav_panel(title = "Analytics Tab - Comparison",p(""),
+                  tags$head(
+                    tags$style(HTML("
+                                            body {
+                                              background-color: #Ecf0f1; }
+                                          "))
+                  ),
+                  HTML("<h1><b>Comparison Tab - Visual and Interactive overview of the Analytics</b></h1>
+                        <h3><b>Here you can compare your favourite artists and songs. You can search for songs/artists you want to compare. The metric can be changed between hours and plays</b></h3>
+                        <h5><u>Note that you can ony compare two artists/songs at a time</u></h5>
+                      
+                                <h2><b>Stacked Barplot: </b></h2> 
+                                <h4>A stacked bar plot is a bar chart in which each bar is divided into sub-sections to represent different components of a total value.
+                                    X-axis is the timeline and Y-axis is number of hours/plays(depends on metric).<br>
+                                    You can also click on a month to see stats for that specific month.
+                                
+                                
+                                <br><br>
+                                <h2><b>Series Line Chart : </b></h2> 
+                                <h4>It is a color coded series plot where x-axis is the timeline whereas y-axis is the the number of hours/plays(depends on metric).<br>
+                                You can also zoom in by dragging your mouse over it.
+                                
+                                
+                                <br><br>
+                                 
+                                 <h2><b>Summary : </b></h2>
+                                 <h4>There is also a brief summary of the data beside the time series line plot.
+                                 The tables give some extra comparison stats between the artists/songs<br>
+                                 <h4>All calculations are calculated by mean not by median</h4> 
+                                 
+                                                 ")
+                  
+        )
+        
+      )),
     #about page
     tabPanel(
       "About", 
@@ -443,19 +486,19 @@ ui <- fluidPage(
       ),
       HTML("<h2><b>Authors</b></h2>
               <h3><b>Sean Ryan Yates<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
-              <h4>Github: 
+              <h4>2nd year BSc in Data Science, Maynooth University</h4>
+               
                       <a href='https://github.com/sean-r-yates' target='_blank'>
-                        Personal GitHub
+                        GitHub
                       </a>
-              </h4>
+              
               <br><h3><b>Ankush Janak Katira<b></h3>
-              <h4>Profession : Student(current)</h4> <h4>2nd year BSc in Data Science, Maynooth University</h4>
-              <h4>Github: 
+              <h4>2nd year BSc in Data Science, Maynooth University</h4>
+
                       <a href='https://github.com/AnkushJK3' target='_blank'>
-                        Personal GitHub
+                        GitHub
                       </a>
-              </h4>
+              
               <br><br><br>
               <h2>About the Project : </h2>
               <h4>Our mission was to compute the analytics of our favourite artists and their songs. <br>With this we can't not only see our favourite 
@@ -472,6 +515,10 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
+  
+  
+  
+  
   #hides the analytics page until zip is uploaded
   hideTab(inputId = "main_nav",target = "analytics")
   
@@ -481,7 +528,7 @@ server <- function(input, output, session) {
   
   observe({set_active_button(drill_level())})
   
-  #warning message toast (yummy)
+  #warning message toast (fyummy)
   toast <- function(msg, type="message"){
     showNotification(msg, type = type, duration = 6)
   }
@@ -489,7 +536,7 @@ server <- function(input, output, session) {
   #validate streaminghistory
   observeEvent(input$music_files,{
     
-    if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+    if(!is.null(input$zip_) || !is.null(data_source())) return()
     
     mf <- input$music_files
     if(is.null(mf)) return()
@@ -508,7 +555,7 @@ server <- function(input, output, session) {
   #validate marquee
   observeEvent(input$marquee_file,{
     
-    if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+    if(!is.null(input$zip_) || !is.null(data_source())) return()
     
     mq <- input$marquee_file
     if(is.null(mq)) return()
@@ -530,6 +577,8 @@ server <- function(input, output, session) {
   #keep the type of data source NULL zip manual
   data_source <- reactiveVal(NULL)
   
+  #YYYY-MM
+  comp_selected_month <- reactiveVal(NULL)
   
   #user artist or song
   drill_level<-reactiveVal("user") 
@@ -549,6 +598,80 @@ server <- function(input, output, session) {
   comp_mode_rv <- reactiveVal("Artist")
   
   ####################################################################
+  ##                          demo launch                           ##
+  ####################################################################
+  
+  read_spotify_demo <- function (){
+    dir_path<-file.path("www","demo")
+    marquee_path <- file.path(dir_path, "Marquee.json")
+    if(!file.exists(marquee_path)){
+      stop("Demo missing Marquee.json")
+    }
+    streaming_history_path <- list.files(
+      dir_path,
+      pattern = "^StreamingHistory_music_[0-9]+\\.json$",
+      full.names = T
+    )
+    if(length(streaming_history_path)==0){
+      stop( "Demo missing StreamingHistory_music.json files")
+    }
+    
+    marquee <- fromJSON(marquee_path,flatten = T)
+    
+    streaming_history_merged<- lapply(streaming_history_path, function(p){
+      fromJSON(p,flatten=T)
+    })
+    
+    streaming_history <- bind_rows(streaming_history_merged)
+    
+    list(
+      marquee = marquee,
+      streaming_history=streaming_history
+    )
+  }
+  
+  observeEvent(input$using_demo,{
+    
+    out <- read_spotify_demo()
+    
+    merged.music.files <- out$streaming_history
+    
+    merged_music_history(merged.music.files)
+    
+    #once execution after upload 
+    all_artists <- merged.music.files %>%
+      distinct(artistName) %>%
+      arrange(artistName) %>%
+      pull(artistName)
+    
+    
+    
+    top50_artists <- merged.music.files %>%
+      group_by(artistName) %>%
+      summarise(total_ms = sum(msPlayed), .groups="drop") %>%
+      arrange(desc(total_ms)) %>%
+      slice_head(n=50) %>%
+      pull(artistName)
+    
+    
+    ordered_top50and_artists <- c(top50_artists, setdiff(all_artists, top50_artists))
+    artist_choice(ordered_top50and_artists)
+    
+    current_artist(NULL)
+    current_song(NULL)
+    
+    
+    drill_level("user")
+    set_active_button("user")
+    
+    
+    showTab(inputId = "main_nav", target = "analytics")
+    updateNavbarPage(session, "main_nav", selected = "analytics")
+  },ignoreInit = T)
+  
+  
+  
+  ####################################################################
   ##                          manual files                         ##
   ####################################################################
   
@@ -559,7 +682,7 @@ server <- function(input, output, session) {
     {
       
       # if zip exists ignore manual
-      if(!is.null(input$zip_) || identical(data_source(),"zip")) return()
+      if(!is.null(input$zip_) || !is.null(data_source())) return()
       
       mf <-input$music_files
       mq <-input$marquee_file
@@ -1246,11 +1369,11 @@ server <- function(input, output, session) {
     
     
     title_text<- if (in_song){
-      paste0("Daily plays: ",current_song())
+      paste0("(Dragable) Daily plays: ",current_song())
     }else if (!is.null(current_artist()) && drill_level()=="artist"){
-      paste0("Daily hours: ",current_artist())
+      paste0("(Dragable) Daily hours: ",current_artist())
     }else {
-      "Daily hours"
+      "(Dragable) Daily hours"
     }
     
     highchart()%>%
@@ -1753,59 +1876,21 @@ server <- function(input, output, session) {
       trackName  = character(0)
     )
   )
-  comp_selected_month <- reactiveVal(NULL)  #YYYY-MM
   
-  # date slider sync Home <-> Compare
-  date_sync_busy <- reactiveVal(F)
   
   selected_date_range <- reactive({
-    b <- base_df() ; req(b)
+    b <- base_df() 
+    req(b)
     
     min_d <- min(b$date)
     max_d <- max(b$date)
     
     r_home <- input$date_range
-    r_comp <- input$comp_date_range
     
-    if(!is.null(r_comp) && length(r_comp)==2) return(r_comp)
     if(!is.null(r_home) && length(r_home)==2) return(r_home)
     
     c(min_d,max_d)
   })
-  
-  observeEvent(input$date_range,{
-    if(isTRUE(date_sync_busy())) return()
-    if(is.null(input$date_range)) return()
-    date_sync_busy(T)
-    updateSliderInput(session,"comp_date_range", value = input$date_range)
-    date_sync_busy(F)
-  }, ignoreInit = T)
-  
-  observeEvent(input$comp_date_range,{
-    if(isTRUE(date_sync_busy())) return()
-    if(is.null(input$comp_date_range)) return()
-    date_sync_busy(T)
-    updateSliderInput(session,"date_range", value = input$comp_date_range)
-    date_sync_busy(F)
-  }, ignoreInit = T)
-  
-  output$comp_date_range_ui <- renderUI({
-    df <- base_df() ; req(df)
-    min_d <- min(df$date)
-    max_d <- max(df$date)
-    cur   <- selected_date_range()
-    
-    sliderInput(
-      "comp_date_range",
-      "Date range",
-      min = min_d,
-      max = max_d,
-      value = cur,
-      timeFormat = "%Y-%m-%d"
-    )
-  })
-  ##
-  
   
   
   # first time only: seed top 2 artists by HOURS
@@ -1965,11 +2050,9 @@ server <- function(input, output, session) {
       cur <- comp_selected_artists()
       
       if(a %in% cur){
-        # allow deselect
-        comp_selected_artists(setdiff(cur, a))
+        # stops you from clicking the same artist twice
         return()
       }
-      
       # replace-oldest
       if(length(cur) >= 2){
         cur <- cur[-1]
@@ -1989,10 +2072,9 @@ server <- function(input, output, session) {
       t <- paste(parts[3:length(parts)], collapse="|")
       
       cur <- comp_selected_songs()
-      hit <- which(cur$artistName == a & cur$trackName == t)
       
-      if(length(hit)){
-        comp_selected_songs(cur[-hit, , drop=FALSE])
+      already_picked<-any(cur$artistName == a & cur$trackName == t)
+      if(already_picked){
         return()
       }
       
@@ -2080,6 +2162,7 @@ server <- function(input, output, session) {
     req(!is.null(info$key))
     comp_selected_month(as.character(info$key))
   }, ignoreInit = T)
+  
   
   
   
@@ -2171,7 +2254,7 @@ server <- function(input, output, session) {
     
     highchart() %>%
       hc_chart(type="column") %>%
-      hc_title(text = "Monthly comparison (stacked)") %>%
+      hc_title(text = "Monthly comparison (Clickable)") %>%
       hc_xAxis(categories = month_labels) %>%
       hc_yAxis(
         title = list(text = if(metric=="Plays") "Plays" else "Hours"),
@@ -2316,8 +2399,255 @@ server <- function(input, output, session) {
     
   })
   
+  ####################################################################
+  ##                Analytics comparison text area                  ##
+  ####################################################################
+  comp_df_filtered <- reactive({
+    df<-base_df()
+    req(df)
+    
+    dr <- selected_date_range()
+    df <- df%>% filter(date>= dr[1],date<=dr[2])
+    
+    #follows the graph above
+    mkey <- comp_selected_month()
+    if (!is.null(mkey) && nzchar(mkey)) {
+      df <- df %>% filter(format(date, "%Y-%m") == mkey)
+    }
+    
+    df
+  })
   
+  #setting oldest to newest
+  comp_selected_pair <- reactive({
+    mode <- comp_mode_rv()
+    
+    if(identical(mode,"Artist")){
+      cur <- comp_selected_artists()
+      if(length(cur)<2)return(NULL)
+      
+      tibble(
+        type = "Artist",
+        artistName = cur,
+        trackName = NA_character_
+      )
+    } else{
+      cur <- comp_selected_songs()
+      if(nrow(cur)<2) return(NULL)
+      
+      cur%>%
+        mutate(type="Song")%>%
+        select(type,artistName,trackName)
+    }
+  })
   
+  #adding stats
+  compute_comp_entity_stats<- function(df,type,artistName,trackName =NA_character_){
+    if(identical(type,"Artist")){
+      d<- df%>% filter(artistName== !!artistName)
+      header <- paste0("Artist :", artistName)
+      
+    }else{
+      d<- df%>% filter(artistName==!!artistName,trackName==!!trackName)
+      header <- paste0("Song: ",trackName," (",artistName,")")
+      
+    }
+    
+    if(nrow(d)==0){
+      return(list(
+        header = header,
+        total_plays = 0L,
+        total_minutes = 0,
+        avg_per_day_m = 0,
+        active_days = 0L,
+        active_days_total = 0L,
+        primary_time = "N/A",
+        peak_hour_label = "N/A",
+        weekend_share = 0,
+        skip_rate = 0,
+        longest_streak = 0L,
+        best_day_label = "N/A",
+        best_day_minutes = 0
+      ))
+    }
+    
+    #total plays and minutes
+    total_plays <- nrow(d)
+    total_minutes <- sum(d$hoursPlayed) * 60
+    
+    
+    #average amount of time perday
+    by_day <- d%>%
+      group_by(date)%>%
+      summarise(m=sum(hoursPlayed)*60,.groups="drop")
+    
+    avg_per_day_m<- mean(by_day$m)
+    
+    #active days vs period
+    active_days <- n_distinct(d$date)
+    active_days_total <- n_distinct(df$date)
+    
+    
+    #mostly day or night listener 
+    by_period <- d%>%
+      mutate(
+        period = case_when(
+          hour >= 21 | hour < 5 ~ "Night",
+          TRUE ~ "Day"
+        )
+      )%>%
+      group_by(period)%>%
+      summarise(h=sum(hoursPlayed),.groups = "drop")
+    
+    day_h <- by_period$h[by_period$period=="Day"]; if(length(day_h)==0) day_h <-0
+    night_h <- by_period$h[by_period$period=="Night"]; if(length(night_h)==0) night_h <-0
+    
+    primary_time <- if(day_h == 0 && night_h == 0){
+      "N/A"
+    } else if (abs(day_h-night_h) /max(day_h,night_h)<= .1){
+      "Mixed"
+    } else if (day_h >= night_h){
+      "Day"
+    } else{
+      "Night"
+    }
+    
+    #peak hour
+    peak_hour <- d %>%
+      group_by(hour) %>%
+      summarise(h = sum(hoursPlayed), .groups = "drop") %>%
+      arrange(desc(h), hour) %>%
+      slice_head(n = 1) %>%
+      pull(hour)
+    
+    peak_hour_label <- if(length(peak_hour) == 0) "N/A" else sprintf("%02d:00", peak_hour[[1]])
+    
+    #weekend share
+    wk <- d %>%
+      mutate(is_weekend = weekdays(date) %in% c("Saturday", "Sunday")) %>%
+      summarise(
+        w = sum(hoursPlayed[is_weekend]),
+        t = sum(hoursPlayed)
+      )
+    
+    weekend_share <- ifelse(wk$t[[1]] > 0, 100 * wk$w[[1]] / wk$t[[1]], 0)
+    
+    #skip rate
+    skip_rate <- 100 * mean(d$msPlayed < 30000, na.rm = TRUE)
+    
+    
+    #longest streak
+    listen_days <- sort(unique(as.Date(d$date)))
+    if(length(listen_days) == 0){
+      longest_streak <- 0L
+    } else{
+      gaps <- as.integer(diff(listen_days))
+      streak_id <- cumsum(c(1L, ifelse(gaps==1L, 0L, 1L)))
+      streak_lengths <- as.integer(table(streak_id))
+      longest_streak <- max(streak_lengths)
+    }
+    
+    i_best <- which.max(by_day$m)
+    best_day_label   <- format(by_day$date[[i_best]], "%d %b %Y")
+    best_day_minutes <- by_day$m[[i_best]]
+    
+    
+    list(
+      header = header,
+      total_plays = total_plays,
+      total_minutes = total_minutes,
+      avg_per_day_m = avg_per_day_m,
+      active_days = active_days,
+      active_days_total = active_days_total,
+      primary_time = primary_time,
+      peak_hour_label = peak_hour_label,
+      weekend_share = weekend_share,
+      skip_rate = skip_rate,
+      longest_streak = longest_streak,
+      best_day_label = best_day_label,
+      best_day_minutes= best_day_minutes
+    )
+  }
+  
+  comp_entity_stats_a <- reactive({
+    df <- comp_df_filtered()
+    sel <- comp_selected_pair()
+    req(!is.null(sel), nrow(sel) >= 2)
+    
+    newest <- sel[2, , drop=F]
+    
+    compute_comp_entity_stats(
+      df = df,
+      type = newest$type[[1]],
+      artistName = newest$artistName[[1]],
+      trackName = newest$trackName[[1]]
+    )
+  })
+  
+  comp_entity_stats_b <- reactive({
+    df <- comp_df_filtered()
+    sel <- comp_selected_pair()
+    req(!is.null(sel), nrow(sel) >= 2)
+    
+    oldest <- sel[1, , drop=F]
+    
+    compute_comp_entity_stats(
+      df = df,
+      type = oldest$type[[1]],
+      artistName = oldest$artistName[[1]],
+      trackName = oldest$trackName[[1]]
+    )
+  })
+  
+  output$comp_text_area_a <- renderUI({
+    s <- comp_entity_stats_a()
+    tags$div(
+      tags$h4(s$header),
+      tags$p( 
+        paste0(
+          "Month: ",
+          ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
+                 "N/A",
+                 format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
+        )),
+      tags$p(paste0("Total plays: ", s$total_plays)),
+      tags$p(paste0("Total minutes: ", round(s$total_minutes, 1), " min")),
+      tags$p(paste0("Avg time per day: ", round(s$avg_per_day_m, 2), "min")),
+      tags$p(paste0("Active days: ", s$active_days, "/", s$active_days_total)),
+      tags$p(paste0("Skip proxy (<30s): ", round(s$skip_rate, 1), "%")),
+      tags$p(paste0("Best day: ", s$best_day_label, " (", round(s$best_day_minutes, 1), " min)")),
+      tags$p(paste0("Mostly listened: ", s$primary_time)),
+      tags$p(paste0("Weekend share: ", round(s$weekend_share, 1), "%")),
+      tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
+      tags$p(paste0("Peak hour: ", s$peak_hour_label))
+      
+    )
+  })
+  
+  output$comp_text_area_b <- renderUI({
+    s <- comp_entity_stats_b()
+    tags$div(
+      tags$h4(s$header),
+      tags$p( 
+        paste0(
+          "Month: ",
+          ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
+                 "N/A",
+                 format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
+        )),
+      tags$p(paste0("Total plays: ", s$total_plays)),
+      tags$p(paste0("Total minutes: ", round(s$total_minutes, 1), " min")),
+      tags$p(paste0("Avg time per day: ", round(s$avg_per_day_m, 2), "min")),
+      tags$p(paste0("Active days: ", s$active_days, "/", s$active_days_total)),
+      tags$p(paste0("Skip proxy (<30s): ", round(s$skip_rate, 1), "%")),
+      tags$p(paste0("Best day: ", s$best_day_label, " (", round(s$best_day_minutes, 1), " min)")),
+      tags$p(paste0("Mostly listened: ", s$primary_time)),
+      tags$p(paste0("Weekend share: ", round(s$weekend_share, 1), "%")),
+      tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
+      tags$p(paste0("Peak hour: ", s$peak_hour_label))
+      
+    )
+  })
 }
 
 # Run the application 
