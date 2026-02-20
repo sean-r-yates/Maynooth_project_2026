@@ -20,18 +20,6 @@
 #   variable "msPlayed"     = is time played in ms per song (songs repeat in the file)
 #   Notes // this is a file storing each time user plays a song not total amount played
 
-#   file name               = StreamingHistory_podcast_[number 0-N]
-#   variable "endTime"      = time the user stopped listened to a podcast
-#   variable "podcastName"  = name of podcast
-#   variable "episodeName"  = name of episode
-#   variable "msPlayed"     = is time played in ms per episode (songs repeat in the file)
-#   Notes // file is pretty much the same as the music alternative 
-
-#   file name               = YourSoundCapsule
-#   variable "highlights"   = is the category
-#   variable "highlightType"= is the type of unique 
-#   Notes // take inspo from this file as its premium users only and dont actually use data from it
-
 library(shiny)
 library(shinythemes)
 library(shinyjs)
@@ -42,6 +30,8 @@ library(tidyr)
 library(DT)
 library(rlang)
 library(bslib)
+library(rsconnect)
+
 
 ui <- fluidPage(
   useShinyjs(),
@@ -236,14 +226,14 @@ ui <- fluidPage(
                 div(class = "drill-title", "Stats about:"),
                 div(
                   class = "drill-row",
-
-
+                  
+                  
                   
                   actionButton("btn_artist", "Artist", class = "drill-btn"),
                   actionButton("btn_song", "Song", class = "drill-btn"),
                   actionButton("btn_user", "Reset", class = "drill-btn")
                 ),
-
+                
                 uiOutput("filter_picker_ui"),
                 uiOutput("date_range_ui"),
                 DTOutput("rank_table")
@@ -368,14 +358,15 @@ ui <- fluidPage(
                   #how to download and use the file
                   HTML("<h2><b>How to get your Spotify zip file</b></h2>
                           <h4>
-                              First, you need to request your data. To do that, go to the Spotify Privacy page and log in.<br>
-                              Select Extended streaming history and request the data.<br>
+                              First, you need to request your data.<br>
+                              To do that, go to the Spotify <a href='https://www.spotify.com/account/privacy/' target='_blank'>Privacy Page</a> and log in.<br>
+                              Select <b>Account Data</b> and request the data.<br>
                               You will receive a confirmation email instantly; click the link in that email to start the request.<br>
-                              It can take up to 30 days for Spotify to gather and send your data, though it may arrive sooner.<br>
+                              It can take up to <b>5 days</b> for Spotify to gather and send your data, though it may arrive sooner.<br>
                               Once you receive the second email, click the download link to save the .zip file to your computer or phone.<br><br>
-                              Click on link below to be redirected to the Spotify Privacy Page<br>
+                              And upload it here to start exploring your Listening habits<br>
                         </h4>
-                        <a href='https://www.spotify.com/account/privacy/' target='_blank'>Click here</a>  <br><br>
+
                         
                         ")
                   
@@ -386,33 +377,34 @@ ui <- fluidPage(
         nav_panel(title = "Analytics Tab - Home",p(""),
                   tags$head(
                     tags$style(HTML("
-                                            body {
-                                              background-color: #Ecf0f1; 
-                                              
-                                            }
-                                          "))
+                                    body {
+                                    background-color: #Ecf0f1; 
+                                    }
+                                    "))
                   ),
-                  HTML("<h1><b>Visual and Interactive overview of the Analytics - Home Tab</b></h1>
+                  HTML("<h1><b>Home Tab - Visual and Interactive overview of the Analytics</b></h1>
                         <h3>Here you can see stats about your favourite artists and songs one at a time</h3><br>
-                        <h4>You can pick one from artist, songs and reset.A date slider is also present if you ever want to narrow down the timeline.</h4>
-                        <h4>The artist tab shows your top 50 artists, song tab shows all the songs you gave a listen while reset tab gives you all artists from the fie uploaded</h4>
+                        <h4>You can pick one of the three states artist, songs and reset. A date slider is also present if you ever want to narrow down the timeline.</h4>
+                        <h4>The <b>Artist</b> State shows your stats for a specific artist and a table for a specific artist's songs sorted by ranked which is based on listening time, <br>
+                        The <b>Song</b> State shows stats for a specific song, and a table showing all the songs you've listened to, <br>
+                        The <b>Reset</b> State shows stats about your overall listening, and gives you a table of your top artists sorted with rank<h4>
                                 
                                 <h2><b>Pick an artist/song to filter by :</b></h2>
                                  <h4>                
-                                      Here you can pick an artist/song of your choosing.<br>           
-                                      The artists/songs in the drop-down list are sorted from most to least listened to.
+                                      Here you can pick an artist/song of your choosing, <br>           
+                                      Either from the table or by search.
                                       <br><br>
+                                      
                                  <h2><b>Gauge Charts : </b></h2>
                                  <h4>
-                                     The gauge charts shows artists/song(depends on the current tab) rank - higher values indicate more listening.<br>
+                                     The gauge charts shows artists/song(depends on the current tab) rank - lower values indicate more listening.<br>
                                      It also displays the percentage of total time listened to.
                                      <br><br>
                                      
                                  <h2><b>Line Graphs : </b></h2>
                                  <h4>   
                                      Listening trends over time - rising lines means increased listening.<br>
-                                     The lien 
-                                     The line graph change based on aritst/song/reset selection.
+                                     The line graph changes based on aritst/song/reset selection.
                                      <br><br>
                                     
                                  <h2><b>HeatMap : </b></h2>
@@ -436,17 +428,20 @@ ui <- fluidPage(
                                               background-color: #Ecf0f1; }
                                           "))
                   ),
-                  HTML("<h1><b>Visual and Interactive overview of the Analytics - Comparison Tab</b></h1>
+                  HTML("<h1><b>Comparison Tab - Visual and Interactive overview of the Analytics</b></h1>
                         <h3><b>Here you can compare your favourite artists and songs. You can search for songs/artists you want to compare. The metric can be changed between hours and plays</b></h3>
                         <h5><u>Note that you can ony compare two artists/songs at a time</u></h5>
-                                <h2><b>Stacked barplot: </b></h2> 
+                      
+                                <h2><b>Stacked Barplot: </b></h2> 
                                 <h4>A stacked bar plot is a bar chart in which each bar is divided into sub-sections to represent different components of a total value.
-                                    X-axis is the timeline and Y-axis is number of hours/plays(depends on metric).
+                                    X-axis is the timeline and Y-axis is number of hours/plays(depends on metric).<br>
+                                    You can also click on a month to see stats for that specific month.
                                 
                                 
                                 <br><br>
-                                <h2><b>Time series line plot: </b></h2> 
-                                <h4>It is a color coded time series plot where x-axis is the timeline whereas y-axis is the the number of  hours/plays(depends on metric).
+                                <h2><b>Series Line Chart : </b></h2> 
+                                <h4>It is a color coded series plot where x-axis is the timeline whereas y-axis is the the number of hours/plays(depends on metric).<br>
+                                You can also zoom in by dragging your mouse over it.
                                 
                                 
                                 <br><br>
@@ -454,13 +449,13 @@ ui <- fluidPage(
                                  <h2><b>Summary : </b></h2>
                                  <h4>There is also a brief summary of the data beside the time series line plot.
                                  The tables give some extra comparison stats between the artists/songs<br>
-                                     
+                                 <h4>All calculations are calculated by mean not by median</h4> 
                                  
                                                  ")
                   
         )
         
-        )),
+      )),
     #about page
     tabPanel(
       "About", 
@@ -1786,7 +1781,7 @@ server <- function(input, output, session) {
       trackName  = character(0)
     )
   )
-
+  
   
   selected_date_range <- reactive({
     b <- base_df() 
@@ -1802,7 +1797,7 @@ server <- function(input, output, session) {
     c(min_d,max_d)
   })
   
-
+  
   # first time only: seed top 2 artists by HOURS
   observeEvent(input$analytics_tabs,{
     if( identical(input$analytics_tabs,"Comparison") && !comp_init_done() ){
@@ -1958,7 +1953,7 @@ server <- function(input, output, session) {
       
       a   <- sub("^A\\|", "", id)
       cur <- comp_selected_artists()
-    
+      
       if(a %in% cur){
         # stops you from clicking the same artist twice
         return()
@@ -1982,7 +1977,7 @@ server <- function(input, output, session) {
       t <- paste(parts[3:length(parts)], collapse="|")
       
       cur <- comp_selected_songs()
-     
+      
       already_picked<-any(cur$artistName == a & cur$trackName == t)
       if(already_picked){
         return()
@@ -2360,7 +2355,7 @@ server <- function(input, output, session) {
     }else{
       d<- df%>% filter(artistName==!!artistName,trackName==!!trackName)
       header <- paste0("Song: ",trackName," (",artistName,")")
-    
+      
     }
     
     if(nrow(d)==0){
@@ -2444,7 +2439,7 @@ server <- function(input, output, session) {
     
     #skip rate
     skip_rate <- 100 * mean(d$msPlayed < 30000, na.rm = TRUE)
-
+    
     
     #longest streak
     listen_days <- sort(unique(as.Date(d$date)))
@@ -2456,7 +2451,7 @@ server <- function(input, output, session) {
       streak_lengths <- as.integer(table(streak_id))
       longest_streak <- max(streak_lengths)
     }
-
+    
     i_best <- which.max(by_day$m)
     best_day_label   <- format(by_day$date[[i_best]], "%d %b %Y")
     best_day_minutes <- by_day$m[[i_best]]
@@ -2478,7 +2473,7 @@ server <- function(input, output, session) {
       best_day_minutes= best_day_minutes
     )
   }
-    
+  
   comp_entity_stats_a <- reactive({
     df <- comp_df_filtered()
     sel <- comp_selected_pair()
@@ -2500,7 +2495,7 @@ server <- function(input, output, session) {
     req(!is.null(sel), nrow(sel) >= 2)
     
     oldest <- sel[1, , drop=F]
-  
+    
     compute_comp_entity_stats(
       df = df,
       type = oldest$type[[1]],
@@ -2531,7 +2526,7 @@ server <- function(input, output, session) {
       tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
       tags$p(paste0("Peak hour: ", s$peak_hour_label))
       
-      )
+    )
   })
   
   output$comp_text_area_b <- renderUI({
@@ -2540,11 +2535,11 @@ server <- function(input, output, session) {
       tags$h4(s$header),
       tags$p( 
         paste0(
-        "Month: ",
-        ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
-               "N/A",
-               format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
-      )),
+          "Month: ",
+          ifelse(is.null(comp_selected_month()) || !nzchar(comp_selected_month()),
+                 "N/A",
+                 format(as.Date(paste0(comp_selected_month(), "-01")), "%b %Y"))
+        )),
       tags$p(paste0("Total plays: ", s$total_plays)),
       tags$p(paste0("Total minutes: ", round(s$total_minutes, 1), " min")),
       tags$p(paste0("Avg time per day: ", round(s$avg_per_day_m, 2), "min")),
@@ -2556,7 +2551,7 @@ server <- function(input, output, session) {
       tags$p(paste0("Longest streak: ", s$longest_streak, " day", if(s$longest_streak==1) "" else "s")),
       tags$p(paste0("Peak hour: ", s$peak_hour_label))
       
-      )
+    )
   })
 }
 
