@@ -20,18 +20,6 @@
 #   variable "msPlayed"     = is time played in ms per song (songs repeat in the file)
 #   Notes // this is a file storing each time user plays a song not total amount played
 
-#   file name               = StreamingHistory_podcast_[number 0-N]
-#   variable "endTime"      = time the user stopped listened to a podcast
-#   variable "podcastName"  = name of podcast
-#   variable "episodeName"  = name of episode
-#   variable "msPlayed"     = is time played in ms per episode (songs repeat in the file)
-#   Notes // file is pretty much the same as the music alternative 
-
-#   file name               = YourSoundCapsule
-#   variable "highlights"   = is the category
-#   variable "highlightType"= is the type of unique 
-#   Notes // take inspo from this file as its premium users only and dont actually use data from it
-
 library(shiny)
 library(shinythemes)
 library(shinyjs)
@@ -212,6 +200,7 @@ ui <- fluidPage(
                <h2><b>How to Start</b></h2>
                         <h4>Upload your zip file to unlock the analytics tab and explore your listening insights.</h4>
                         <h4>You could also upload the required files to unlock the analytics tab and explore. </h4>
+<<<<<<< HEAD
                         <br>
                         <h4> Or run the <b>demo</b> using a dev's spotify Data</h4>
                         
@@ -220,6 +209,11 @@ ui <- fluidPage(
             
             actionButton("using_demo"," Demo",icon = icon("play"),class="btn-demo"),
             
+=======
+                        
+                        
+                        ")
+>>>>>>> eb3eed8a4708bd5b19c6f6c541f585cae262d459
           )
         )
         
