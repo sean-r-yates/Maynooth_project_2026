@@ -8,32 +8,33 @@ Click [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&star
 ---
 
 ## Inspiration  
-We’ve wanted to build something that gives deeper insight into Spotify data for a long time.  
+We’ve always felt that spotify wrapped could be squeezed for more data,<br>
+so we wanted to build something that gives deeper more insightful dive into Spotify data.  
 This project was created as our submission for the **2025/2026 Maynooth Data Science Shiny App Development Competition**.
 
 ---
 
 ## Features  
-- Upload Spotify data export (`.zip` or required JSON files)
+- Upload Spotify data export (`.zip` or required `.json` files)
 - Interactive analytics dashboard
-- Drill-down views by:
-  - User-level stats
-  - Artist-level stats
-  - Song-level stats
-- Date range controls and dynamic filtering
-- Rank tables for top songs/artists
-- Listening pattern visualizations:
-  - Weekly heatmap
-  - Monthly heatmap
-  - Trend charts
-  - Gauge summary metrics
-
-  
+  - Analytics Home Page:
+    - Drill-down views by:
+      - Reset/default/user will produce stats about the user at highest level
+      - Artist will produce stats about a specific artist
+      - Song will produce stats about a specfic song
+    - Date range controls and dynamic filtering
+    - Listening pattern visualizations:
+      - Weekly heatmap sum/mean
+      - Monthly heatmap sum/mean
+      - gauge charts
+      - Line Chart
+  - Analytics Comparison Page:
+    - Comarison visualizations:
+      - Stacked monthly barchart
+      - two veriable line chart
+         
 
 ---
-## Improvements since Deadline
-- NA
-
 ## Data Files Used  
 The app expects Spotify export files in this format or simply a zip file:
 
@@ -54,6 +55,14 @@ not actually used but required to run
 - `segment` – listener segment label
 
 ---
+## Known Issues/Errors
+- sometimes analytics comparison song stats will be 0 but that is because by default we pick the newest month, so if user hasn't listenned to anything that month itll be 0's
+
+  
+## Improvements since Deadline
+- NA
+
+
 
 ### Resources used in development
 ##### Videos 
