@@ -9,9 +9,12 @@ Click [here](https://statsight-fm.shinyapps.io/Statsight-fm/) for a demo of the 
 ---
 
 ## Inspiration  
-We’ve always felt that spotify wrapped could be squeezed for more data,<br>
-so we wanted to build something that gives deeper more insightful dive into Spotify data.  
+We’ve always felt that Spotify Wrapped could be squeezed for more data,<br>
+so we wanted to build something that gives a deeper, more insightful dive into Spotify data.  
 This project was created as our submission for the **2025/2026 Maynooth Data Science Shiny App Development Competition**.
+
+## Winner of the 2026 Shiny Contest
+🏆 This project won the 2025/26 Maynooth Shiny App Development Competition.
 
 ---
 
@@ -20,9 +23,9 @@ This project was created as our submission for the **2025/2026 Maynooth Data Sci
 - Interactive analytics dashboard
   - Analytics Home Page:
     - Drill-down views by:
-      - Reset/default/user will produce stats about the user at highest level
+      - Reset/default/user will produce stats about the user at the highest level
       - Artist will produce stats about a specific artist
-      - Song will produce stats about a specfic song
+      - Song will produce stats about a specific song
     - Date range controls and dynamic filtering
     - Listening pattern visualizations:
       - Weekly heatmap sum/mean
@@ -30,9 +33,9 @@ This project was created as our submission for the **2025/2026 Maynooth Data Sci
       - gauge charts
       - Line Chart
   - Analytics Comparison Page:
-    - Comarison visualizations:
+    - Comparison visualizations:
       - Stacked monthly barchart
-      - two veriable line chart
+      - two variable line chart
          
 
 ---
@@ -51,13 +54,13 @@ The app expects Spotify export files in this format or simply a zip file:
 
 
 **Marquee file**
-not actually used but required to run
+not actually used, but required to run
 - `artistName` – artist name
 - `segment` – listener segment label
 
 ---
 ## Known Issues/Errors
-- sometimes analytics comparison song stats will be 0 but that is because by default we pick the newest month, so if user hasn't listenned to anything that month itll be 0's
+- Sometimes analytics comparison song stats will be 0, but that is because by default we pick the newest month, so if the user hasn't listened to anything that month, it'll be 0.
 
   
 ## Improvements since Deadline
@@ -78,7 +81,7 @@ not actually used but required to run
 - https://youtu.be/q4O6bRL1f4w
 - https://youtu.be/KrcoQY8AQy0
 
-##### Articals/websites 
+##### Articles/websites 
 - https://www.quantargo.com/help/r/latest/packages/DT/0.18
 - https://www.geeksforgeeks.org/r-language/data-visualization-with-highcharter-in-r/
 - https://rstudio.github.io/DT/
@@ -88,7 +91,7 @@ not actually used but required to run
 - https://medium.com/@amitmangal2203/data-visualization-with-highcharter-in-r-programming-2453ae4b30ad
 - https://www.geeksforgeeks.org/r-language/working-with-json-files-in-r-programming/
 
-and https://chatgpt.com for trouble shooting
+and https://chatgpt.com for troubleshooting
 
 
 
