@@ -59,10 +59,15 @@ not actually used, but required to run
 - `segment` – listener segment label
 
 ---
-## Known Issues/Errors
+## Known Issues/Feedback
 - Sometimes analytics comparison song stats will be 0, but that is because by default we pick the newest month, so if the user hasn't listened to anything that month, it'll be 0.
+- add more clarity to the heatmap's sum and mean
+- Comparison graphs should be rounded to two decimal places when hovering over the stacked barplot
+- Use more NA's instead of 0
+- clarity on the Reset button
+- clarity on drilldown functionality
 
-  
+
 ## Improvements since Deadline
 - NA
 
