@@ -1,4 +1,4 @@
-# StatSight.fm <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Shiny_hex_logo.svg/1200px-Shiny_hex_logo.svg.png" align="right" width=120 height=139 alt="Shiny Logo" />
+# StatSight.fm <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Shiny_hex_logo.svg/250px-Shiny_hex_logo.svg.png" align="right" width=120 height=139 alt="Shiny Logo" />
 
 ## Goal  
 Build an interactive **R Shiny** application that helps users explore and better understand their Spotify listening data through clear visuals, filtering tools, and insightful stats.
